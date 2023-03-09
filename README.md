@@ -17,10 +17,10 @@ which can be the input of transformer for the classification of the audio sample
 
 ## Run
 
-**Train VQ-GAN**: `py train_VQ_GAN.py` and edit `configs/1d-VQ_GAN.yaml` (you'll understand the structure)
-**Train transformer**: todo
-**Sample using transformer?**: maybe
-**Transformer based classification pipeline**: todo
+**Train VQ-GAN**: `py train_VQ_GAN.py` and edit `configs/1d-VQ_GAN.yaml` (you'll understand the structure) \
+**Train transformer**: todo \
+**Sample using transformer?**: maybe \
+**Transformer based classification pipeline**: todo 
 
 Ignore the `main.py` (legacy code)
 
