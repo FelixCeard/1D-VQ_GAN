@@ -496,7 +496,13 @@ class VQModel1D(pl.LightningModule):
 		                          lr=lr, betas=(0.5, 0.9))
 		opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(),
 		                            lr=lr, betas=(0.5, 0.9))
-		return [opt_ae, opt_disc], []
+
+		lr_scheduler = {
+			'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(opt_ae, 'min'),
+			'name': 'Reduce_on_plateau'
+		}
+
+		return [opt_ae, opt_disc], [lr_scheduler]
 		# return [opt_ae], []
 
 	def get_last_layer(self):
