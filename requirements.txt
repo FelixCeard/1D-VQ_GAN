@@ -1,0 +1,15 @@
+numpy
+albumentations
+Pillow
+torch
+tqdm
+librosa
+audiomentations
+torchvision
+einops
+requests
+wandb
+omegaconf
+scipy
+setuptools
+matplotlib

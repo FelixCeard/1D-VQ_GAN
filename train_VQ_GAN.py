@@ -49,7 +49,7 @@ if __name__ == "__main__":
 	]
 
 	# trainer
-	accumulate_grad_batches = 8
+	accumulate_grad_batches = 12
 	batch_size = config.data.params.batch_size
 	model.learning_rate = accumulate_grad_batches * batch_size * config.model.base_learning_rate
 
@@ -57,15 +57,7 @@ if __name__ == "__main__":
 		logger=wandb_logger,
 		enable_checkpointing=True,
 		callbacks=callbacks,
-		# auto_scale_batch_size=True,  # use it?
-		# auto_lr_find=True,  # use it?
-		# weights_save_path="",
 		accumulate_grad_batches=accumulate_grad_batches
 	)
-
-	with open('encoder.txt', 'w') as file:
-		file.write(str(model.encoder))
-	with open('decoder.txt', 'w') as file:
-		file.write(str(model.decoder))
 
 	trainer.fit(model, data)
