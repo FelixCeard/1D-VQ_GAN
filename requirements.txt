@@ -13,3 +13,5 @@ omegaconf
 scipy
 setuptools
 matplotlib
+pytorch_lightning
+pyroomacoustics

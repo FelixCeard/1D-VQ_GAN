@@ -3,12 +3,12 @@ import os
 import warnings
 from datetime import datetime
 
+import wandb
 from omegaconf import OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-import wandb
 from VQ_train_utils import instantiate_from_config
 
 if __name__ == "__main__":
