@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from main import instantiate_from_config
 from taming.modules.vqvae.quantize import EMAVectorQuantizer, GumbelQuantize, VectorQuantizer2 as VectorQuantizer
-
+import wandb
 
 def Normalize(in_channels):
 	return torch.nn.GroupNorm(num_groups=32, num_channels=in_channels, eps=1e-6, affine=True)
@@ -455,8 +455,11 @@ class VQModel1D(pl.LightningModule):
 			aeloss, log_dict_ae = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
 			                                last_layer=self.get_last_layer(), split="train")
 
+			# wandb.log({"train/loss": loss})
+
 			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			wandb.log(log_dict_ae)
 			return aeloss
 
 		if optimizer_idx == 1:
@@ -465,6 +468,7 @@ class VQModel1D(pl.LightningModule):
 			                                    last_layer=self.get_last_layer(), split="train")
 			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			wandb.log(log_dict_disc)
 			return discloss
 
 	def validation_step(self, batch, batch_idx):
@@ -478,6 +482,7 @@ class VQModel1D(pl.LightningModule):
 		                                    last_layer=self.get_last_layer(), split="val")
 
 		self.log_dict(log_dict_ae | log_dict_disc)
+		wandb.log(log_dict_ae | log_dict_disc)
 
 		return self.log_dict
 
