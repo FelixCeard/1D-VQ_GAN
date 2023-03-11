@@ -9,6 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
+
 from VQ_train_utils import instantiate_from_config
 
 if __name__ == "__main__":
@@ -64,7 +65,7 @@ if __name__ == "__main__":
 	callbacks = [
 		LearningRateMonitor(logging_interval='step'),
 		ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True),
-		AudioLoggingCallback(next(data['validation'])['wav'])
+		AudioLoggingCallback(next(data.val_dataloader())['wav'].numpy())
 	]
 
 	# trainer
