@@ -499,11 +499,12 @@ class VQModel1D(pl.LightningModule):
 
 		lr_scheduler = {
 			'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(opt_ae, 'min'),
-			'name': 'Reduce_on_plateau'
+			'name': 'Reduce_on_plateau',
+			'monitor': 'val/total_loss'
 		}
 
-		return [opt_ae, opt_disc], [lr_scheduler]
-		# return [opt_ae], []
+		# return [opt_ae, opt_disc], [lr_scheduler]
+		return [opt_ae], []  # skip LR scheduler
 
 	def get_last_layer(self):
 		return self.decoder.conv_out.weight

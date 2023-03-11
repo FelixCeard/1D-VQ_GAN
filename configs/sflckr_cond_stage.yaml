@@ -34,10 +34,10 @@ data:
   params:
     batch_size: 12
     train:
-      target: taming.data.sflckr.Examples # adjust
+      target: taming.dataset.sflckr.Examples # adjust
       params:
         size: 256
     validation:
-      target: taming.data.sflckr.Examples # adjust
+      target: taming.dataset.sflckr.Examples # adjust
       params:
         size: 256

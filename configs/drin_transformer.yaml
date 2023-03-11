@@ -68,10 +68,10 @@ data:
     batch_size: 2
     num_workers: 8
     train:
-      target: taming.data.imagenet.RINTrainWithDepth
+      target: taming.dataset.imagenet.RINTrainWithDepth
       params:
         size: 256
     validation:
-      target: taming.data.imagenet.RINValidationWithDepth
+      target: taming.dataset.imagenet.RINValidationWithDepth
       params:
         size: 256

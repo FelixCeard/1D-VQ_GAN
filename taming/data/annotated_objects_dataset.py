@@ -111,7 +111,7 @@ class AnnotatedObjectsDataset(Dataset):
 
     @property
     def conditional_builders(self) -> ObjectsCenterPointsConditionalBuilder:
-        # cannot set this up in init because no_classes is only known after loading data in init of superclass
+        # cannot set this up in init because no_classes is only known after loading dataset in init of superclass
         if self._conditional_builders is None:
             self._conditional_builders = {
                 'objects_center_points': ObjectsCenterPointsConditionalBuilder(

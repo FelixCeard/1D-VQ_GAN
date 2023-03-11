@@ -29,8 +29,8 @@ if __name__ == "__main__":
 	logging.debug('loading model')
 	model = instantiate_from_config(config.model)
 
-	# data
-	logging.debug('loading data')
+	# dataset
+	logging.debug('loading dataset')
 	data = instantiate_from_config(config.data)
 	data.prepare_data()
 	data.setup()

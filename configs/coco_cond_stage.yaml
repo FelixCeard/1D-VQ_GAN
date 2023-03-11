@@ -34,14 +34,14 @@ data:
   params:
     batch_size: 12
     train:
-      target: taming.data.coco.CocoImagesAndCaptionsTrain
+      target: taming.dataset.coco.CocoImagesAndCaptionsTrain
       params:
         size: 296
         crop_size: 256
         onehot_segmentation: true
         use_stuffthing: true
     validation:
-      target: taming.data.coco.CocoImagesAndCaptionsValidation
+      target: taming.dataset.coco.CocoImagesAndCaptionsValidation
       params:
         size: 256
         crop_size: 256

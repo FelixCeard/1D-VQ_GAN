@@ -43,7 +43,7 @@ def reporthook(bar):
 
 
 def get_root(name):
-    base = "data/"
+    base = "dataset/"
     root = os.path.join(base, name)
     os.makedirs(root, exist_ok=True)
     return root

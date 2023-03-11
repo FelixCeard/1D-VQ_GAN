@@ -165,8 +165,8 @@ if __name__ == "__main__":
     cli = OmegaConf.from_dotlist(unknown)
     if opt.ignore_base_data:
         for config in configs:
-            if hasattr(config, "data"):
-                del config["data"]
+            if hasattr(config, "dataset"):
+                del config["dataset"]
     config = OmegaConf.merge(*configs, cli)
     desired_z_shape, desired_resolution = get_resolution(opt.resolution)
     conditional = opt.conditional

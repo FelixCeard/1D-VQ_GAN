@@ -49,15 +49,15 @@ data:
   params:
     batch_size: 6
     train:
-      target: taming.data.annotated_objects_open_images.AnnotatedObjectsOpenImages
+      target: taming.dataset.annotated_objects_open_images.AnnotatedObjectsOpenImages
       params:
-        data_path: data/open_images_annotations_100  # substitute with path to full dataset
+        data_path: dataset/open_images_annotations_100  # substitute with path to full dataset
         split: train
         keys: [image, objects_bbox, file_name, annotations]
         no_tokens: 8192
         target_image_size: 256
-        category_allow_list_target: taming.data.open_images_helper.top_300_classes_plus_coco_compatibility
-        category_mapping_target: taming.data.open_images_helper.open_images_unify_categories_for_coco
+        category_allow_list_target: taming.dataset.open_images_helper.top_300_classes_plus_coco_compatibility
+        category_mapping_target: taming.dataset.open_images_helper.open_images_unify_categories_for_coco
         min_object_area: 0.0001
         min_objects_per_image: 2
         max_objects_per_image: 30
@@ -67,15 +67,15 @@ data:
         use_additional_parameters: true
         encode_crop: true
     validation:
-      target: taming.data.annotated_objects_open_images.AnnotatedObjectsOpenImages
+      target: taming.dataset.annotated_objects_open_images.AnnotatedObjectsOpenImages
       params:
-        data_path: data/open_images_annotations_100  # substitute with path to full dataset
+        data_path: dataset/open_images_annotations_100  # substitute with path to full dataset
         split: validation
         keys: [image, objects_bbox, file_name, annotations]
         no_tokens: 8192
         target_image_size: 256
-        category_allow_list_target: taming.data.open_images_helper.top_300_classes_plus_coco_compatibility
-        category_mapping_target: taming.data.open_images_helper.open_images_unify_categories_for_coco
+        category_allow_list_target: taming.dataset.open_images_helper.top_300_classes_plus_coco_compatibility
+        category_mapping_target: taming.dataset.open_images_helper.open_images_unify_categories_for_coco
         min_object_area: 0.0001
         min_objects_per_image: 2
         max_objects_per_image: 30

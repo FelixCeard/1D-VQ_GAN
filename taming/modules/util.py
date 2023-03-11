@@ -122,7 +122,7 @@ class SOSProvider(AbstractEncoder):
         self.quantize_interface = quantize_interface
 
     def encode(self, x):
-        # get batch size from data and replicate sos_token
+        # get batch size from dataset and replicate sos_token
         c = torch.ones(x.shape[0], 1)*self.sos_token
         c = c.long().to(x.device)
         if self.quantize_interface:

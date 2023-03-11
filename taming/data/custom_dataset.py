@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Custom data loader
+Custom dataset loader
 """
 import glob
 import os
@@ -21,7 +21,7 @@ class PathException(Exception):
 
 class AudioDataLoader(Dataset):
 	"""
-	Returns the pure audio data of a folder
+	Returns the pure audio dataset of a folder
 	Goal is to be able to be compressed using a VQ-GAN to then be classified using a transformer
 	"""
 

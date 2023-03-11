@@ -152,7 +152,7 @@ def get_parser():
     parser.add_argument(
         "--ignore_base_data",
         action="store_true",
-        help="Ignore data specification from base configs. Useful if you want "
+        help="Ignore dataset specification from base configs. Useful if you want "
         "to specify a custom datasets on the command line.",
     )
     parser.add_argument(
@@ -207,7 +207,7 @@ def load_model_from_config(config, sd, gpu=True, eval_mode=True):
 
 
 def get_data(config):
-    # get data
+    # get dataset
     data = instantiate_from_config(config.data)
     data.prepare_data()
     data.setup()
@@ -215,8 +215,8 @@ def get_data(config):
 
 
 def load_model_and_dset(config, ckpt, gpu, eval_mode):
-    # get data
-    dsets = get_data(config)   # calls data.config ...
+    # get dataset
+    dsets = get_data(config)   # calls dataset.config ...
 
     # now load the specified checkpoint
     if ckpt:
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     cli = OmegaConf.from_dotlist(unknown)
     if opt.ignore_base_data:
         for config in configs:
-            if hasattr(config, "data"): del config["data"]
+            if hasattr(config, "dataset"): del config["dataset"]
     config = OmegaConf.merge(*configs, cli)
 
     print(ckpt)
