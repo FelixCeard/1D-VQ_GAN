@@ -34,7 +34,7 @@ class AudioDataLoader(Dataset):
 		self.path_images = path_images
 
 		self.sampling_rate = sampling_rate
-
+		self.max_num_images = max_num_images
 		self.check_dataset_folder()
 
 		# get images
@@ -95,17 +95,19 @@ class TrainLoader(AudioDataLoader):
 	def __init__(self, path_wav: str, max_num_images=-1, sampling_rate=8_000, split=1, apply_transform=False):
 		super().__init__(path_wav, max_num_images, sampling_rate, apply_transform)
 		max_indx = int(split * self.__len__())
-		self.raw_wave_paths = self.raw_wave_paths[:max_indx]
-		self.size = max_indx
+		
+		if max_num_images <= 0:
+			self.raw_wave_paths = self.raw_wave_paths[:max_indx]
+			self.size = max_indx
 
 
 class TestLoader(AudioDataLoader):
 	def __init__(self, path_wav: str, max_num_images=-1, sampling_rate=8_000, split=1, apply_transform=False):
 		super().__init__(path_wav, max_num_images, sampling_rate, apply_transform)
 		max_indx = int((1 - split) * self.__len__())
-		self.raw_wave_paths = self.raw_wave_paths[max_indx:]
-
-		self.size = max_indx
+		if max_num_images <= 0:
+			self.raw_wave_paths = self.raw_wave_paths[max_indx:]
+			self.size = max_indx
 
 
 class RandomChoice(torch.nn.Module):
