@@ -504,7 +504,8 @@ class VQModel1D(pl.LightningModule):
 		}
 
 		# return [opt_ae, opt_disc], [lr_scheduler]
-		return [opt_ae], []  # skip LR scheduler
+		return [opt_ae, opt_disc], []
+		# return [opt_ae], []  # skip LR scheduler
 
 	def get_last_layer(self):
 		return self.decoder.conv_out.weight
