@@ -43,7 +43,6 @@ if __name__ == "__main__":
 	cfgdir = os.path.join(logdir, "configs")
 
 
-	# custom Audio display callback
 	class AudioLoggingCallback(Callback):
 		def __init__(self, sample):
 			self.sample = sample
@@ -65,7 +64,7 @@ if __name__ == "__main__":
 	callbacks = [
 		LearningRateMonitor(logging_interval='step'),
 		ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True),
-		AudioLoggingCallback()
+		AudioLoggingCallback(next(data['validation'])['wav'])
 	]
 
 	# trainer
