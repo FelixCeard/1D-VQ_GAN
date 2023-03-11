@@ -6,9 +6,8 @@ from datetime import datetime
 import wandb
 from omegaconf import OmegaConf
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-
 
 from VQ_train_utils import instantiate_from_config
 
@@ -43,10 +42,30 @@ if __name__ == "__main__":
 	ckptdir = os.path.join(logdir, "checkpoints")
 	cfgdir = os.path.join(logdir, "configs")
 
+
+	# custom Audio display callback
+	class AudioLoggingCallback(Callback):
+		def __init__(self, sample):
+			self.sample = sample
+
+		def on_train_end(self, trainer, pl_module):
+			print("Training is ending")
+
+		def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+			model = pl_module
+			rec = model.forward(self.sample.clone())
+
+			model.log_dict({
+				'OG': wandb.Audio(self.sample, sample_rate=8_000, caption='Original Audio'),
+				'Reconstructed': wandb.Audio(rec, sample_rate=8_000, caption='Original Audio'),
+			})
+
+
 	# callbacks
 	callbacks = [
 		LearningRateMonitor(logging_interval='step'),
-		ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True)
+		ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True),
+		AudioLoggingCallback()
 	]
 
 	# trainer
