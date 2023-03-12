@@ -1,0 +1,61 @@
+# training the VQ-VAE and transformer at the same time
+model:
+  base_learning_rate: 4.5e-06
+  target: taming.models.DaddyTransformer.DaddyTransformer
+  params:
+    first_stage_key: wav
+    transformer_config:
+      target: taming.modules.transformer.mingpt.GPT
+      params:
+        vocab_size: 512
+        block_size: 256
+        n_layer: 24
+        n_head: 8
+        n_embd: 512
+    first_stage_config:
+      target: taming.models.vqgan_1D.VQModel1D
+      params:
+        embed_dim: 256
+        n_embed: 1024
+        image_key: wav
+        ddconfig:
+          double_z: False
+          z_channels: 256
+          resolution: 256
+          in_channels: 1
+          out_ch: 1
+          ch: 32
+          ch_mult: [ 1,1,2,2,4 ]  # num_down = len(ch_mult)-1
+          num_res_blocks: 3
+          attn_resolutions: [ 16 ]
+          dropout: 0.0
+
+        lossconfig:
+          target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminator1D
+          params:
+            perceptual_weight: 0 # skip the VGG model loss part
+            disc_conditional: False
+            disc_in_channels: 1
+            disc_start: 10000
+            disc_weight: 0.8
+            codebook_weight: 1.0
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 1 # has to be one because of variable input length => no stacking possible
+    num_workers: 1
+    train:
+      target: taming.data.custom_dataset.TrainLoader
+      params:
+        path_wav: dataset/speech_data
+        max_num_images: 20
+        split: 0.8
+        apply_transform: true
+    validation:
+      target: taming.data.custom_dataset.TestLoader
+      params:
+        path_wav: dataset/speech_data
+        max_num_images: 2
+        split: 0.8
+        apply_transform: false
