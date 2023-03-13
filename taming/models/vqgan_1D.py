@@ -504,14 +504,23 @@ class VQModel1D(pl.LightningModule):
 		opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(),
 		                            lr=lr, betas=(0.5, 0.9))
 
-		lr_scheduler = {
+		reduce_on_plateau_ae = {
 			'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(opt_ae, 'min'),
-			'name': 'Reduce_on_plateau',
-			'monitor': 'val/total_loss'
+			'name': 'Reduce_on_plateau_ae',
+			'monitor': 'train/aeloss',
+			'frequency': 1,
+			"interval": "epoch",
+		}
+		reduce_on_plateau_disc = {
+			'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(opt_disc, 'min'),
+			'name': 'Reduce_on_plateau_disc',
+			'monitor': 'train/discloss',
+			"interval": "epoch",
+			'frequency': 1
 		}
 
 		# return [opt_ae, opt_disc], [lr_scheduler]
-		return [opt_ae, opt_disc], []
+		return [opt_ae, opt_disc], [reduce_on_plateau_ae, reduce_on_plateau_disc]
 		# return [opt_ae], []  # skip LR scheduler
 
 	def get_last_layer(self):
