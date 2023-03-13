@@ -118,3 +118,6 @@ def train():
 	)
 
 	trainer.fit(model, data)
+
+if __name__ == '__main__':
+	train()
