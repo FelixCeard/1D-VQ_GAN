@@ -112,7 +112,9 @@ def train():
 		enable_checkpointing=True,
 		callbacks=callbacks,
 		accumulate_grad_batches=accumulate_grad_batches,
-		gradient_clip_val=0.5
+		gradient_clip_val=0.5,
+		accelerator="gpu",
+		devices=-1
 	)
 
 	trainer.fit(model, data)
