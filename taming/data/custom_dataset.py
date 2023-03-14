@@ -77,8 +77,8 @@ class AudioDataLoader(Dataset):
 		path_wave = self.raw_wave_paths[idx]
 		data, sr = librosa.load(path_wave, sr=self.sampling_rate)
 
-		if self.apply_transform:
-			data = self.transforms(data, sr)
+		# if self.apply_transform:
+		# 	data = self.transforms(data, sr)
 
 		data = torch.tensor(data)  # .reshape(1, -1)
 

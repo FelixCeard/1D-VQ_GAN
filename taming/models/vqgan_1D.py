@@ -226,13 +226,10 @@ class Encoder1D(nn.Module):
 
 		# timestep embedding
 		temb = None
-		# print('entering Encoder')
-		# print(x.shape)
 
 		# downsampling
 		hs = [self.conv_in(x)]
 		for i_level in range(self.num_resolutions):
-			# print(hs[-1].shape)
 			for i_block in range(self.num_res_blocks):
 				h = self.down[i_level].block[i_block](hs[-1], temb)
 				if len(self.down[i_level].attn) > 0:
@@ -406,8 +403,6 @@ class VQModel1D(pl.LightningModule):
 		if monitor is not None:
 			self.monitor = monitor
 
-		self.best_loss = float('inf')
-
 	def init_from_ckpt(self, path, ignore_keys=list()):
 		sd = torch.load(path, map_location="cpu")["state_dict"]
 		keys = list(sd.keys())
@@ -456,11 +451,7 @@ class VQModel1D(pl.LightningModule):
 			# autoencode
 			aeloss, log_dict_ae = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
 			                                last_layer=self.get_last_layer(), split="train")
-
-			# wandb.log({"train/loss": loss})
-
 			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			# self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			wandb.log(log_dict_ae)
 			return aeloss
 
@@ -469,7 +460,6 @@ class VQModel1D(pl.LightningModule):
 			discloss, log_dict_disc = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
 			                                    last_layer=self.get_last_layer(), split="train")
 			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			# self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			wandb.log(log_dict_disc)
 			return discloss
 
@@ -483,36 +473,21 @@ class VQModel1D(pl.LightningModule):
 		discloss, log_dict_disc = self.loss(qloss, x, xrec, 1, self.global_step,
 		                                    last_layer=self.get_last_layer(), split="val")
 
-		# self.log_dict(log_dict_ae | log_dict_disc)
 		wandb.log(log_dict_ae | log_dict_disc)
 
-		# return self.log_dict
+		return aeloss + discloss
 
 	def configure_optimizers(self):
 		lr = self.learning_rate
-		opt_ae = torch.optim.Adam(list(self.encoder.parameters()) +
+		opt_ae = torch.optim.AdamW(list(self.encoder.parameters()) +
 		                          list(self.decoder.parameters()) +
 		                          list(self.quantize.parameters()) +
 		                          list(self.quant_conv.parameters()) +
 		                          list(self.post_quant_conv.parameters()),
 		                          lr=lr, betas=(0.5, 0.9))
-		opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(),
+		opt_disc = torch.optim.AdamW(self.loss.discriminator.parameters(),
 		                            lr=lr, betas=(0.5, 0.9))
 
-		# reduce_on_plateau_ae = {
-		# 	'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(opt_ae, 'min'),
-		# 	'name': 'Reduce_on_plateau_ae',
-		# 	'monitor': 'train/aeloss',
-		# 	'frequency': 1,
-		# 	"interval": "epoch",
-		# }
-		# reduce_on_plateau_disc = {
-		# 	'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(opt_disc, 'min'),
-		# 	'name': 'Reduce_on_plateau_disc',
-		# 	'monitor': 'train/discloss',
-		# 	"interval": "epoch",
-		# 	'frequency': 1
-		# }
 
 		return [opt_ae, opt_disc], []
 		# return [opt_ae, opt_disc], [reduce_on_plateau_ae, reduce_on_plateau_disc]
@@ -520,28 +495,6 @@ class VQModel1D(pl.LightningModule):
 
 	def get_last_layer(self):
 		return self.decoder.conv_out.weight
-
-	def log_images(self, batch, **kwargs):
-		log = dict()
-		x = self.get_input(batch, self.image_key)
-		x = x.to(self.device)
-		xrec, _ = self(x)
-		if x.shape[1] > 3:
-			# colorize with random projection
-			assert xrec.shape[1] > 3
-			x = self.to_rgb(x)
-			xrec = self.to_rgb(xrec)
-		log["inputs"] = x
-		log["reconstructions"] = xrec
-		return log
-
-	def to_rgb(self, x):
-		assert self.image_key == "segmentation"
-		if not hasattr(self, "colorize"):
-			self.register_buffer("colorize", torch.randn(3, x.shape[1], 1, 1).to(x))
-		x = F.conv1d(x, weight=self.colorize)
-		x = 2. * (x - x.min()) / (x.max() - x.min()) - 1.
-		return x
 
 
 class VQSegmentationModel1D(VQModel1D):
