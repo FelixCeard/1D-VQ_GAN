@@ -406,9 +406,6 @@ class VQModel1D(pl.LightningModule):
 		if monitor is not None:
 			self.monitor = monitor
 
-		self.aelosses = []
-		self.disclosses = []
-
 		self.best_loss = float('inf')
 
 	def init_from_ckpt(self, path, ignore_keys=list()):
@@ -465,7 +462,6 @@ class VQModel1D(pl.LightningModule):
 			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			wandb.log(log_dict_ae)
-			self.aelosses.append(aeloss)
 			return aeloss
 
 		if optimizer_idx == 1:
@@ -475,7 +471,6 @@ class VQModel1D(pl.LightningModule):
 			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			wandb.log(log_dict_disc)
-			self.disclosses.append(discloss)
 			return discloss
 
 	def validation_step(self, batch, batch_idx):
