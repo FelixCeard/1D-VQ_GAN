@@ -460,7 +460,7 @@ class VQModel1D(pl.LightningModule):
 			# wandb.log({"train/loss": loss})
 
 			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			# self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			wandb.log(log_dict_ae)
 			return aeloss
 
@@ -469,7 +469,7 @@ class VQModel1D(pl.LightningModule):
 			discloss, log_dict_disc = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
 			                                    last_layer=self.get_last_layer(), split="train")
 			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			# self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			wandb.log(log_dict_disc)
 			return discloss
 
@@ -483,10 +483,10 @@ class VQModel1D(pl.LightningModule):
 		discloss, log_dict_disc = self.loss(qloss, x, xrec, 1, self.global_step,
 		                                    last_layer=self.get_last_layer(), split="val")
 
-		self.log_dict(log_dict_ae | log_dict_disc)
+		# self.log_dict(log_dict_ae | log_dict_disc)
 		wandb.log(log_dict_ae | log_dict_disc)
 
-		return self.log_dict
+		# return self.log_dict
 
 	def configure_optimizers(self):
 		lr = self.learning_rate

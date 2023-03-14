@@ -1,6 +1,7 @@
 model:
   base_learning_rate: 4.5e-05
-  target: taming.models.vqgan_1D.VQModel1D
+#  target: taming.models.vqgan_1D.VQModel1D
+  target: taming.models.vqgan_1D.EMAVQ1D
   params:
     embed_dim: 128
     n_embed: 512
