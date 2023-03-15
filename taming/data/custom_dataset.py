@@ -85,7 +85,9 @@ class AudioDataLoader(Dataset):
 		if (diff := data.shape[0] % 16) > 0:
 			data = F.pad(input=data, pad=(0, 16 - diff))
 
-		return {"wav": data, 'sampling_rate': sr}
+		label = int(path_wave.split('/')[-1][0])
+
+		return {"wav": data, 'sampling_rate': sr, 'label':label}
 
 	def transforms(self, sample, sr):
 		return self.augmentations(sample, sample_rate=sr)
