@@ -70,7 +70,7 @@ class DaddyTransformer(pl.LightningModule):
 		#### transformer
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
-		y = F.one_hot(y.reshape(-1), num_classes=10)
+		y = F.one_hot(y.reshape(-1).long(), num_classes=10)
 
 		with torch.no_grad():
 			logits = self(x)[:, -1, :]
@@ -88,7 +88,7 @@ class DaddyTransformer(pl.LightningModule):
 	def training_step(self, batch, batch_idx):
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
-		y = F.one_hot(y.reshape(-1), num_classes=10)
+		y = F.one_hot(y.reshape(-1).long(), num_classes=10)
 		# xrec, qloss = self.first_stage_model(x)
 
 		# if optimizer_idx == 0:
