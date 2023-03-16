@@ -47,29 +47,39 @@ class DaddyTransformer(pl.LightningModule):
 
 		return logits
 
-	def validation_step(self, batch, batch_idx, optimizer_idx):
-		#### VQ-VAE
-		x = self.first_stage_model.get_input(batch, self.image_key)
-		xrec, qloss = self(x)
-
-		aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
-		                                                  last_layer=self.first_stage_model.get_last_layer(),
-		                                                  split="val")
-
-		discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1, self.first_stage_model.global_step,
-		                                                      last_layer=self.first_stage_model.get_last_layer(),
-		                                                      split="val")
-
-		self.log_dict(log_dict_ae | log_dict_disc)
-		wandb.log(log_dict_ae | log_dict_disc)
+	def validation_step(self, batch, batch_idx):
+		# #### VQ-VAE
+		# x = self.first_stage_model.get_input(batch, self.image_key)
+		# xrec, qloss = self(x)
+		#
+		# aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
+		#                                                   last_layer=self.first_stage_model.get_last_layer(),
+		#                                                   split="val")
+		#
+		# discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1, self.first_stage_model.global_step,
+		#                                                       last_layer=self.first_stage_model.get_last_layer(),
+		#                                                       split="val")
+		#
+		# self.log_dict(log_dict_ae | log_dict_disc)
+		# wandb.log(log_dict_ae | log_dict_disc)
 
 		#### transformer
-		loss = self.transformer.shared_step(batch, batch_idx)
-		self.log("val/TransLoss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+		x = self.first_stage_model.get_input(batch, self.image_key)
+		y = self.first_stage_model.get_input(batch, self.response_key)
 
-		return loss
+		with torch.no_grad():
+			logits, target = self.transformer(x)
+			loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1))
+			# loss = self.transformer.shared_step(batch, batch_idx)
+			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			return loss
 
-	def training_step(self, batch, batch_idx, optimizer_idx):
+		# loss = self.transformer.shared_step(batch, batch_idx)
+		# self.log("val/TransLoss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+
+		# return loss
+
+	def training_step(self, batch, batch_idx):
 		x = self.first_stage_model.get_input(batch, self.image_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
 		# xrec, qloss = self.first_stage_model(x)
