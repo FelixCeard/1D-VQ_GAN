@@ -143,7 +143,7 @@ class DaddyTransformer(pl.LightningModule):
 		no_decay.add('pos_emb')
 
 		# validate that we considered every parameter
-		param_dict = {pn: p for pn, p in self.transformer.transformer.named_parameters()}
+		param_dict = {pn: p for pn, p in self.transformer.named_parameters()}
 		inter_params = decay & no_decay
 		union_params = decay | no_decay
 		assert len(inter_params) == 0, "parameters %s made it into both decay/no_decay sets!" % (str(inter_params),)
