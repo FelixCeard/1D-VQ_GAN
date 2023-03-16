@@ -46,14 +46,17 @@ data:
       target: taming.data.custom_dataset.DatasetLoader
       params:
         path_wav: 1D-VQ_GAN/dataset
+        tsv_path: 1D-VQ_GAN/dataset/SDR_metadata.tsv
         split: train
     validation:
       target: taming.data.custom_dataset.DatasetLoader
       params:
         path_wav: 1D-VQ_GAN/dataset
+        tsv_path: 1D-VQ_GAN/dataset/SDR_metadata.tsv
         split: dev
     test:
       target: taming.data.custom_dataset.DatasetLoader
       params:
         path_wav: 1D-VQ_GAN/dataset
+        tsv_path: 1D-VQ_GAN/dataset/SDR_metadata.tsv
         split: test

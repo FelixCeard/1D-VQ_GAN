@@ -31,7 +31,7 @@ class AudioDataLoader(Dataset):
 		if not os.path.isdir(self.path_images):
 			raise PathException(f"The given path is not a valid: {self.path_images}")
 
-	def __init__(self, path_images: str, max_num_images=-1, sampling_rate=8_000, apply_transform: bool = False, split:str = 'train'):
+	def __init__(self, path_images: str, max_num_images=-1, sampling_rate=8_000, apply_transform: bool = False, split:str = 'train', tsv_path='./../../dataset/SDR_metadata.tsv'):
 		# print('init custom image-sketch dataset')
 		self.path_images = path_images
 
@@ -40,7 +40,7 @@ class AudioDataLoader(Dataset):
 		self.check_dataset_folder()
 
 		# filtering the paths
-		df = pd.read_csv('./../../dataset/SDR_metadata.tsv', sep='	')
+		df = pd.read_csv(tsv_path, sep='	')
 		df = df[df['split'] == split.upper()] # filter for the specific thing
 		paths = df['file'].tolist()
 		paths = [os.path.join(path_images, p) for p in paths]
