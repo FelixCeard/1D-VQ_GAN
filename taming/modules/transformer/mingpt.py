@@ -125,7 +125,7 @@ class Block(nn.Module):
 class GPT(nn.Module):
     """  the full GPT language model, with a context size of block_size """
     def __init__(self, vocab_size, block_size, n_layer=12, n_head=8, n_embd=256,
-                 embd_pdrop=0., resid_pdrop=0., attn_pdrop=0., n_unmasked=0):
+                 embd_pdrop=0., resid_pdrop=0., attn_pdrop=0., n_unmasked=0, num_classes:int = 10):
         super().__init__()
         config = GPTConfig(vocab_size=vocab_size, block_size=block_size,
                            embd_pdrop=embd_pdrop, resid_pdrop=resid_pdrop, attn_pdrop=attn_pdrop,
@@ -139,7 +139,7 @@ class GPT(nn.Module):
         self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
         # decoder head
         self.ln_f = nn.LayerNorm(config.n_embd)
-        self.head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.head = nn.Linear(config.n_embd, config.num_classes, bias=False)
         self.block_size = config.block_size
         self.apply(self._init_weights)
         self.config = config

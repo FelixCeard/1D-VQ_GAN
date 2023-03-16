@@ -12,6 +12,7 @@ model:
         n_layer: 8
         n_head: 16
         n_embd: 128
+        num_classes: 10
     first_stage_config:
       target: taming.models.vqgan_1D.VQModel1D
       params:
