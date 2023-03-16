@@ -12,6 +12,7 @@ import wandb
 
 from VQ_train_utils import instantiate_from_config
 from taming.models.vqgan_1D import VQModel1D
+import torch.nn.functional as F
 
 
 class DaddyTransformer(pl.LightningModule):
@@ -19,6 +20,7 @@ class DaddyTransformer(pl.LightningModule):
 	             transformer_config,
 	             first_stage_config,
 	             first_stage_key="image",
+	             response_key='label',
 	             sos_token=0,
 	             *args: Any,
 	             **kwargs: Any):
@@ -27,6 +29,7 @@ class DaddyTransformer(pl.LightningModule):
 		self.be_unconditional = True
 		self.sos_token = sos_token
 		self.first_stage_key = first_stage_key
+		self.response_key = response_key
 
 		self.init_first_stage_from_ckpt(first_stage_config)
 
@@ -36,7 +39,7 @@ class DaddyTransformer(pl.LightningModule):
 		model = instantiate_from_config(config)
 		self.first_stage_model: VQModel1D = model
 
-	def forward(self, x, c):
+	def forward(self, x):
 		_, z_indices = self.encode_to_z(x)
 
 		# make the prediction
@@ -68,6 +71,7 @@ class DaddyTransformer(pl.LightningModule):
 
 	def training_step(self, batch, batch_idx, optimizer_idx):
 		x = self.first_stage_model.get_input(batch, self.image_key)
+		y = self.first_stage_model.get_input(batch, self.response_key)
 		xrec, qloss = self.first_stage_model(x)
 
 		if optimizer_idx == 0:
@@ -96,7 +100,11 @@ class DaddyTransformer(pl.LightningModule):
 			return discloss
 
 		if optimizer_idx == 2:
-			loss = self.transformer.shared_step(batch, batch_idx)
+
+			# self.transformer.forward()
+			logits, target = self.transformer(x)
+			loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1))
+			# loss = self.transformer.shared_step(batch, batch_idx)
 			self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			return loss
 
