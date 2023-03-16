@@ -9,7 +9,8 @@ import torch
 import torchvision
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.utilities.distributed import rank_zero_only
+# from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch.utils.data import DataLoader
 import requests
 import shutil
