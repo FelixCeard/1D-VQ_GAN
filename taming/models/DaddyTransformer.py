@@ -44,9 +44,10 @@ class DaddyTransformer(pl.LightningModule):
 
 		print('quant_z:', quant_z.shape, type(quant_z))
 		print('z_indices:', z_indices.shape, type(z_indices))
+		print(z_indices)
 
 		# make the prediction
-		logits, _ = self.transformer(quant_z)
+		logits, _ = self.transformer(z_indices)
 
 		return logits
 
