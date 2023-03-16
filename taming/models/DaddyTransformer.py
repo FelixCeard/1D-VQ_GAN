@@ -64,7 +64,7 @@ class DaddyTransformer(pl.LightningModule):
 		# wandb.log(log_dict_ae | log_dict_disc)
 
 		#### transformer
-		x = self.first_stage_model.get_input(batch, self.image_key)
+		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
 
 		with torch.no_grad():
@@ -80,7 +80,7 @@ class DaddyTransformer(pl.LightningModule):
 		# return loss
 
 	def training_step(self, batch, batch_idx):
-		x = self.first_stage_model.get_input(batch, self.image_key)
+		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
 		# xrec, qloss = self.first_stage_model(x)
 
