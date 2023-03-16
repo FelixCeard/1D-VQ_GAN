@@ -86,11 +86,11 @@ class DaddyTransformer(pl.LightningModule):
 			# loss = self.transformer.shared_step(batch, batch_idx)
 			accuracy = Accuracy(task='multiclass', num_classes=10)
 			acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
-			self.log('val/Accuracy', acc, on_epoch=True)
+			self.log('val/Accuracy', acc, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			F1 = F1Score(task='multiclass')
 			f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
-			self.log("train/F1", f1, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			self.log("test/F1", f1, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
 			return loss
 
@@ -126,8 +126,8 @@ class DaddyTransformer(pl.LightningModule):
 		f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 
 		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-		self.log("train/F1", f1, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-		self.log('train/Accuracy', acc, on_epoch=True)
+		self.log("train/F1", f1, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+		self.log('train/Accuracy', acc, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 		self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 		self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 		self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
