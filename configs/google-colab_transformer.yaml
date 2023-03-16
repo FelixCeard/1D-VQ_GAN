@@ -4,13 +4,14 @@ model:
   params:
     first_stage_key: wav
     response_key: label
+    freeze_vq_vae: false
     transformer_config:
       target: taming.modules.transformer.mingpt.GPT
       params:
         vocab_size: 1024
         block_size: 1024
         n_layer: 8
-        n_head: 16
+        n_head: 8
         n_embd: 128
         num_classes: 10
     first_stage_config:
