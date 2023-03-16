@@ -40,10 +40,11 @@ class DaddyTransformer(pl.LightningModule):
 		self.first_stage_model: VQModel1D = model
 
 	def forward(self, x):
-		_, z_indices = self.encode_to_z(x)
+		quant_z, z_indices = self.encode_to_z(x)
+
 
 		# make the prediction
-		logits, _ = self.transformer(z_indices)
+		logits, _ = self.transformer(quant_z)
 
 		return logits
 
