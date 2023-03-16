@@ -33,6 +33,10 @@ class DaddyTransformer(pl.LightningModule):
 
 		self.init_first_stage_from_ckpt(first_stage_config)
 
+		# freeze the VQ-VAE for faster training
+		# todo: check whether it needs to be frozen or not
+		self.first_stage_model.freeze()
+
 		self.transformer = instantiate_from_config(config=transformer_config)
 
 	def init_first_stage_from_ckpt(self, config):
