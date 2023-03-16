@@ -8,11 +8,11 @@ from typing import Any
 
 import pytorch_lightning as pl
 import torch
-import wandb
 
 from VQ_train_utils import instantiate_from_config
 from taming.models.vqgan_1D import VQModel1D
 import torch.nn.functional as F
+from torchmetrics import Accuracy
 
 
 class DaddyTransformer(pl.LightningModule):
@@ -77,6 +77,9 @@ class DaddyTransformer(pl.LightningModule):
 			# print(logits.shape, x.shape, y.shape)
 			loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 			# loss = self.transformer.shared_step(batch, batch_idx)
+			accuracy = Accuracy(task='multiclass', num_classes=10)
+			acc = accuracy(logits.reshape(1, -1), y.long())
+			self.log('val/Accuracy', acc, on_epoch=True)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			return loss
 
@@ -123,6 +126,10 @@ class DaddyTransformer(pl.LightningModule):
 		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 		# loss = self.transformer.shared_step(batch, batch_idx)
 		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+		accuracy = Accuracy(task='multiclass', num_classes=10)
+		acc = accuracy(logits.reshape(1, -1), y.long())
+		self.log('train/Accuracy', acc, on_epoch=True)
+
 		return loss
 
 	def configure_optimizers(self):
