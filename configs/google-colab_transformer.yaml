@@ -7,7 +7,7 @@ model:
     transformer_config:
       target: taming.modules.transformer.mingpt.GPT
       params:
-        vocab_size: 10
+        vocab_size: 1024
         block_size: 512
         n_layer: 8
         n_head: 16
