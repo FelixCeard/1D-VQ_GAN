@@ -70,11 +70,12 @@ class DaddyTransformer(pl.LightningModule):
 		#### transformer
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
+		y = F.one_hot(y, num_classes=10)
 
 		with torch.no_grad():
 			logits = self(x)[:, -1, :]
 			print(logits.shape, x.shape, y.shape)
-			loss = F.cross_entropy(logits.reshape(-1), y.reshape(-1))
+			loss = F.cross_entropy(logits.reshape(-1), y)
 			# loss = self.transformer.shared_step(batch, batch_idx)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 			return loss
@@ -87,6 +88,7 @@ class DaddyTransformer(pl.LightningModule):
 	def training_step(self, batch, batch_idx):
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
+		y = F.one_hot(y, num_classes=10)
 		# xrec, qloss = self.first_stage_model(x)
 
 		# if optimizer_idx == 0:
@@ -118,7 +120,7 @@ class DaddyTransformer(pl.LightningModule):
 
 		# self.transformer.forward()
 		logits = self(x)[:, -1, :]
-		loss = F.cross_entropy(logits.reshape(-1), y.reshape(-1))
+		loss = F.cross_entropy(logits.reshape(-1), y)
 		# loss = self.transformer.shared_step(batch, batch_idx)
 		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 		return loss
