@@ -61,24 +61,22 @@ class DaddyTransformer(pl.LightningModule):
 
 	def validation_step(self, batch, batch_idx):
 		# #### VQ-VAE
-		# x = self.first_stage_model.get_input(batch, self.image_key)
-		# xrec, qloss = self(x)
-		#
-		# aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
-		#                                                   last_layer=self.first_stage_model.get_last_layer(),
-		#                                                   split="val")
-		#
-		# discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1, self.first_stage_model.global_step,
-		#                                                       last_layer=self.first_stage_model.get_last_layer(),
-		#                                                       split="val")
-		#
-		# self.log_dict(log_dict_ae | log_dict_disc)
-		# wandb.log(log_dict_ae | log_dict_disc)
+		x = self.first_stage_model.get_input(batch, self.image_key)
+		xrec, qloss = self(x)
+
+		aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
+		                                                  last_layer=self.first_stage_model.get_last_layer(),
+		                                                  split="val")
+
+		discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1, self.first_stage_model.global_step,
+		                                                      last_layer=self.first_stage_model.get_last_layer(),
+		                                                      split="val")
+
+		self.log_dict(log_dict_ae | log_dict_disc)
 
 		#### transformer
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
-		# y = F.one_hot(y.reshape(-1).long(), num_classes=10)
 
 		with torch.no_grad():
 			logits = self(x)[:, -1, :]
@@ -114,7 +112,7 @@ class DaddyTransformer(pl.LightningModule):
 		                                                      last_layer=self.first_stage_model.get_last_layer(),
 		                                                      split="train")
 		logits = self(x)[:, -1, :]
-		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
+		loss = F.cross_entropy(logits.reshape(1, -1), y)
 		accuracy = Accuracy(task='multiclass', num_classes=10)
 		acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 
@@ -137,7 +135,7 @@ class DaddyTransformer(pl.LightningModule):
 
 		# accumulate gradients of N batches
 		if (batch_idx + 1) % 16 == 0:
-			opt1, opt2, opt3 = self.optimizers() # todo: is this the right function?
+			opt1, opt2, opt3 = self.optimizers()
 
 			# clip gradients
 			self.clip_gradients(opt1, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
