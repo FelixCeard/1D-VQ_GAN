@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 4.5e-04
+  base_learning_rate: 4.5e-02
   target: taming.models.DaddyTransformer.DaddyTransformer
   params:
     first_stage_key: wav

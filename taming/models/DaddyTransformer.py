@@ -32,6 +32,9 @@ class DaddyTransformer(pl.LightningModule):
 		self.first_stage_key = first_stage_key
 		self.response_key = response_key
 
+		# big brain optimization is NOW
+		self.automatic_optimization = False
+
 		self.init_first_stage_from_ckpt(first_stage_config)
 
 		# freeze the VQ-VAE for faster training
@@ -96,44 +99,60 @@ class DaddyTransformer(pl.LightningModule):
 	def training_step(self, batch, batch_idx):
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
-		# y = F.one_hot(y.reshape(-1).long(), num_classes=10)
-		# xrec, qloss = self.first_stage_model(x)
+		y = F.one_hot(y.reshape(-1).long(), num_classes=10)
+		xrec, qloss = self.first_stage_model(x)
 
-		# if optimizer_idx == 0:
-		# 	# autoencode
-		# 	aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, optimizer_idx,
-		# 	                                                  self.first_stage_model.global_step,
-		# 	                                                  last_layer=self.first_stage_model.get_last_layer(),
-		# 	                                                  split="train")
-		#
-		# 	# wandb.log({"train/loss": loss})
-		#
-		# 	self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-		# 	self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-		# 	wandb.log(log_dict_ae)
-		# 	return aeloss
-		#
-		# if optimizer_idx == 1:
-		# 	# discriminator
-		# 	discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, optimizer_idx,
-		# 	                                                      self.first_stage_model.global_step,
-		# 	                                                      last_layer=self.first_stage_model.get_last_layer(),
-		# 	                                                      split="train")
-		# 	self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-		# 	self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-		# 	wandb.log(log_dict_disc)
-		# 	return discloss
-		#
-		# if optimizer_idx == 2:
+		# autoencode
+		aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0,
+		                                                  self.first_stage_model.global_step,
+		                                                  last_layer=self.first_stage_model.get_last_layer(),
+		                                                  split="train")
 
-		# self.transformer.forward()
+		# discriminator
+		discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1,
+		                                                      self.first_stage_model.global_step,
+		                                                      last_layer=self.first_stage_model.get_last_layer(),
+		                                                      split="train")
 		logits = self(x)[:, -1, :]
 		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
-		# loss = self.transformer.shared_step(batch, batch_idx)
-		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 		accuracy = Accuracy(task='multiclass', num_classes=10)
 		acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
+
+		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 		self.log('train/Accuracy', acc, on_epoch=True)
+		self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+		self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+		self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+		self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+
+		# backwards
+		self.manual_backward(aeloss)
+		self.manual_backward(discloss)
+		self.manual_backward(loss)
+
+		# schedulers
+		sch1, sch2 = self.lr_schedulers()
+		sch1.step()
+		sch2.step()
+
+		# accumulate gradients of N batches
+		if (batch_idx + 1) % 16 == 0:
+			opt1, opt2, opt3 = self.optimizers() # todo: is this the right function?
+
+			# clip gradients
+			self.clip_gradients(opt1, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+			self.clip_gradients(opt2, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+			self.clip_gradients(opt3, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+
+			# VQ-VAE
+			opt1.step()
+			opt2.step()
+			# transformer
+			opt3.step()
+
+			opt1.zero_grad()
+			opt2.zero_grad()
+			opt3.zero_grad()
 
 		return loss
 
@@ -189,11 +208,14 @@ class DaddyTransformer(pl.LightningModule):
 
 
 		# only change the transformer weights
-		return [optimizer], [
-			torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 80], gamma=0.1), # reduce after a few epochs
-			torch.optim.lr_scheduler.LinearLR(optimizer), # low to high during the first epochs
+		# return [optimizer], [
+		# 	torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 80], gamma=0.1), # reduce after a few epochs
+		# 	torch.optim.lr_scheduler.LinearLR(optimizer), # low to high during the first epochs
+		# ]
+		return [opt_ae, opt_disc, optimizer], [
+			torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1), # reduce after a few epochs
+			torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=25_000), # low to high during the first epochs
 		]
-		# return [opt_ae, opt_disc, optimizer], []
 
 	def top_k_logits(self, logits, k):
 		v, ix = torch.topk(logits, k)
