@@ -61,7 +61,7 @@ class DaddyTransformer(pl.LightningModule):
 
 	def validation_step(self, batch, batch_idx):
 		# #### VQ-VAE
-		x = self.first_stage_model.get_input(batch, self.image_key)
+		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		xrec, qloss = self(x)
 
 		aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
