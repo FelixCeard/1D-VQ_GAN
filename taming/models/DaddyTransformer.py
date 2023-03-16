@@ -72,41 +72,41 @@ class DaddyTransformer(pl.LightningModule):
 	def training_step(self, batch, batch_idx, optimizer_idx):
 		x = self.first_stage_model.get_input(batch, self.image_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
-		xrec, qloss = self.first_stage_model(x)
+		# xrec, qloss = self.first_stage_model(x)
 
-		if optimizer_idx == 0:
-			# autoencode
-			aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, optimizer_idx,
-			                                                  self.first_stage_model.global_step,
-			                                                  last_layer=self.first_stage_model.get_last_layer(),
-			                                                  split="train")
+		# if optimizer_idx == 0:
+		# 	# autoencode
+		# 	aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, optimizer_idx,
+		# 	                                                  self.first_stage_model.global_step,
+		# 	                                                  last_layer=self.first_stage_model.get_last_layer(),
+		# 	                                                  split="train")
+		#
+		# 	# wandb.log({"train/loss": loss})
+		#
+		# 	self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+		# 	self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+		# 	wandb.log(log_dict_ae)
+		# 	return aeloss
+		#
+		# if optimizer_idx == 1:
+		# 	# discriminator
+		# 	discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, optimizer_idx,
+		# 	                                                      self.first_stage_model.global_step,
+		# 	                                                      last_layer=self.first_stage_model.get_last_layer(),
+		# 	                                                      split="train")
+		# 	self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+		# 	self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+		# 	wandb.log(log_dict_disc)
+		# 	return discloss
+		#
+		# if optimizer_idx == 2:
 
-			# wandb.log({"train/loss": loss})
-
-			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-			wandb.log(log_dict_ae)
-			return aeloss
-
-		if optimizer_idx == 1:
-			# discriminator
-			discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, optimizer_idx,
-			                                                      self.first_stage_model.global_step,
-			                                                      last_layer=self.first_stage_model.get_last_layer(),
-			                                                      split="train")
-			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-			wandb.log(log_dict_disc)
-			return discloss
-
-		if optimizer_idx == 2:
-
-			# self.transformer.forward()
-			logits, target = self.transformer(x)
-			loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1))
-			# loss = self.transformer.shared_step(batch, batch_idx)
-			self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-			return loss
+		# self.transformer.forward()
+		logits, target = self.transformer(x)
+		loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1))
+		# loss = self.transformer.shared_step(batch, batch_idx)
+		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+		return loss
 
 	def configure_optimizers(self):
 		#### VQ-VAE
@@ -159,7 +159,9 @@ class DaddyTransformer(pl.LightningModule):
 		optimizer = torch.optim.AdamW(optim_groups, lr=self.learning_rate, betas=(0.9, 0.95))
 		# return optimizer
 
-		return [opt_ae, opt_disc, optimizer], []
+		# only change the transformer weights
+		return [optimizer], []
+		# return [opt_ae, opt_disc, optimizer], []
 
 	def top_k_logits(self, logits, k):
 		v, ix = torch.topk(logits, k)
