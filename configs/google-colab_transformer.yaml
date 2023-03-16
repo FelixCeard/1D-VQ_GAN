@@ -31,8 +31,14 @@ model:
           attn_resolutions: [ 32 ]
           dropout: 0.0
         lossconfig:
-          target: taming.modules.losses.DummyLoss
-#    cond_stage_config:
+          target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminator1D
+          params:
+            perceptual_weight: 0 # skip the VGG model loss part
+            disc_conditional: False
+            disc_in_channels: 1
+            disc_start: 1000
+            disc_weight: 0.8
+            codebook_weight: 1.0
 #      target: taming.models.dummy_cond_stage.DummyCondStage
 #      params:
 #        conditional_key: objects_bbox
