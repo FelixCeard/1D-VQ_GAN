@@ -22,6 +22,7 @@ class DaddyTransformer(pl.LightningModule):
 	             first_stage_key="image",
 	             response_key='label',
 	             sos_token=0,
+	             freeze_vq_vae:bool=True,
 	             *args: Any,
 	             **kwargs: Any):
 		super().__init__(*args, **kwargs)
@@ -35,7 +36,8 @@ class DaddyTransformer(pl.LightningModule):
 
 		# freeze the VQ-VAE for faster training
 		# todo: check whether it needs to be frozen or not
-		self.first_stage_model.freeze()
+		if freeze_vq_vae:
+			self.first_stage_model.freeze()
 
 		self.transformer = instantiate_from_config(config=transformer_config)
 
