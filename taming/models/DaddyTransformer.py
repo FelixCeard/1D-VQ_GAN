@@ -99,7 +99,7 @@ class DaddyTransformer(pl.LightningModule):
 	def training_step(self, batch, batch_idx):
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
-		y = F.one_hot(y.reshape(-1).long(), num_classes=10)
+		# y = F.one_hot(y.reshape(-1).long(), num_classes=10)
 		xrec, qloss = self.first_stage_model(x)
 
 		# autoencode
@@ -114,7 +114,7 @@ class DaddyTransformer(pl.LightningModule):
 		                                                      last_layer=self.first_stage_model.get_last_layer(),
 		                                                      split="train")
 		logits = self(x)[:, -1, :]
-		loss = F.cross_entropy(logits.reshape(1, -1), y)
+		loss = F.cross_entropy(logits.reshape(1, -1), y.to(torch.float))
 		accuracy = Accuracy(task='multiclass', num_classes=10)
 		acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 
