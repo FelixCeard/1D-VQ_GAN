@@ -46,11 +46,7 @@ class DaddyTransformer(pl.LightningModule):
 	def forward(self, x):
 		quant_z, z_indices = self.encode_to_z(x)
 
-		# print('quant_z:', quant_z.shape, type(quant_z))
-		# print('z_indices:', z_indices.shape, type(z_indices))
-		# print(z_indices)
-
-		print(quant_z.shape, z_indices.shape)
+		# print(quant_z.shape, z_indices.shape)
 
 
 		# make the prediction

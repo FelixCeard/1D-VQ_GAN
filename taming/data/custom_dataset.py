@@ -73,8 +73,11 @@ class AudioDataLoader(Dataset):
 
 		data = torch.tensor(data)  # .reshape(1, -1)
 
+
 		if (diff := data.shape[0] % 16) > 0:
 			data = F.pad(input=data, pad=(0, 16 - diff))
+
+		data = data[:12_000] # limit input to 1,5 seconds (rest is probably empty)
 
 		label = int(path_wave.split('/')[-1][0])
 
