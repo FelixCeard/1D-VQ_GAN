@@ -186,10 +186,13 @@ class DaddyTransformer(pl.LightningModule):
 			{"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0},
 		]
 		optimizer = torch.optim.AdamW(optim_groups, lr=self.learning_rate, betas=(0.9, 0.95))
-		# return optimizer
+
 
 		# only change the transformer weights
-		return [optimizer], []
+		return [optimizer], [
+			torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 80], gamma=0.1), # reduce after a few epochs
+			torch.optim.lr_scheduler.LinearLR(optimizer), # low to high during the first epochs
+		]
 		# return [opt_ae, opt_disc, optimizer], []
 
 	def top_k_logits(self, logits, k):
