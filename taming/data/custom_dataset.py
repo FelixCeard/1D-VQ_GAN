@@ -89,9 +89,10 @@ class TrainLoader(AudioDataLoader):
 		if max_num_images <= 0:
 			self.raw_wave_paths = self.raw_wave_paths[:max_indx]
 			self.size = max_indx
+
 class DatasetLoader(AudioDataLoader):
-	def __init__(self, path_wav: str, max_num_images=-1, sampling_rate=8_000, split='train'):
-		super().__init__(path_wav, max_num_images, sampling_rate, apply_transform=False, split=split)
+	def __init__(self, path_wav: str, max_num_images=-1, sampling_rate=8_000, split='train', tsv_path:str='.'):
+		super().__init__(path_wav, max_num_images, sampling_rate, apply_transform=False, split=split, tsv_path=tsv_path)
 
 
 class TestLoader(AudioDataLoader):
