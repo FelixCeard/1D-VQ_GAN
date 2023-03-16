@@ -12,7 +12,7 @@ import torch
 from VQ_train_utils import instantiate_from_config
 from taming.models.vqgan_1D import VQModel1D
 import torch.nn.functional as F
-from torchmetrics import Accuracy
+from torchmetrics import Accuracy, F1Score
 
 
 class DaddyTransformer(pl.LightningModule):
@@ -38,7 +38,6 @@ class DaddyTransformer(pl.LightningModule):
 		self.init_first_stage_from_ckpt(first_stage_config)
 
 		# freeze the VQ-VAE for faster training
-		# todo: check whether it needs to be frozen or not
 		if freeze_vq_vae:
 			self.first_stage_model.freeze()
 
@@ -89,6 +88,10 @@ class DaddyTransformer(pl.LightningModule):
 			acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 			self.log('val/Accuracy', acc, on_epoch=True)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			F1 = F1Score(task='multiclass')
+			f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
+			self.log("train/F1", f1, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+
 			return loss
 
 		# loss = self.transformer.shared_step(batch, batch_idx)
@@ -115,10 +118,15 @@ class DaddyTransformer(pl.LightningModule):
 		                                                      split="train")
 		logits = self(x)[:, -1, :]
 		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
+
 		accuracy = Accuracy(task='multiclass', num_classes=10)
+		F1 = F1Score(task='multiclass')
+
 		acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
+		f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 
 		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+		self.log("train/F1", f1, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 		self.log('train/Accuracy', acc, on_epoch=True)
 		self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 		self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
