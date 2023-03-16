@@ -125,7 +125,7 @@ class DaddyTransformer(pl.LightningModule):
 		no_decay = set()
 		whitelist_weight_modules = (torch.nn.Linear,)
 		blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding)
-		for mn, m in self.transformer.transformer.named_modules():
+		for mn, m in self.transformer.named_modules():
 			for pn, p in m.named_parameters():
 				fpn = '%s.%s' % (mn, pn) if mn else pn  # full param name
 
