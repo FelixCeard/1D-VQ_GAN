@@ -68,7 +68,7 @@ class DaddyTransformer(pl.LightningModule):
 		y = self.first_stage_model.get_input(batch, self.response_key)
 
 		with torch.no_grad():
-			logits, target = self.transformer(x)
+			logits= self(x)
 			loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1))
 			# loss = self.transformer.shared_step(batch, batch_idx)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
@@ -112,7 +112,7 @@ class DaddyTransformer(pl.LightningModule):
 		# if optimizer_idx == 2:
 
 		# self.transformer.forward()
-		logits, target = self.transformer(x)
+		logits = self(x)
 		loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), y.reshape(-1))
 		# loss = self.transformer.shared_step(batch, batch_idx)
 		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
