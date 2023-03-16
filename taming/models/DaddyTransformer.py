@@ -88,7 +88,7 @@ class DaddyTransformer(pl.LightningModule):
 			acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 			self.log('val/Accuracy', acc, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-			F1 = F1Score(task='multiclass')
+			F1 = F1Score(task='multilabel')
 			f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 			self.log("test/F1", f1, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
@@ -120,7 +120,7 @@ class DaddyTransformer(pl.LightningModule):
 		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 
 		accuracy = Accuracy(task='multiclass', num_classes=10)
-		F1 = F1Score(task='multiclass')
+		F1 = F1Score(task='multilabel')
 
 		acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 		f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
