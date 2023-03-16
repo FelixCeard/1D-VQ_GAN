@@ -62,7 +62,7 @@ class DaddyTransformer(pl.LightningModule):
 	def validation_step(self, batch, batch_idx):
 		# #### VQ-VAE
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
-		xrec = self(x)
+		xrec = self.first_stage_model(x)
 
 		qloss = torch.tensor([0]).to(self.device) # I dont use this loss, so I just skip it
 
