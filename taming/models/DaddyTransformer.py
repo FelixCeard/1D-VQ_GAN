@@ -184,5 +184,5 @@ class DaddyTransformer(pl.LightningModule):
 	def encode_to_z(self, x):
 		quant_z, _, info = self.first_stage_model.encode(x)
 		indices = info[2].view(quant_z.shape[0], -1)
-		indices = self.permuter(indices)
+		# indices = self.permuter(indices)
 		return quant_z, indices
