@@ -2,7 +2,8 @@ model:
   base_learning_rate: 4.5e-04
   target: taming.models.DaddyTransformer.DaddyTransformer
   params:
-    cond_stage_key: wav
+    first_stage_key: wav
+    response_key: label
     transformer_config:
       target: taming.modules.transformer.mingpt.GPT
       params:
