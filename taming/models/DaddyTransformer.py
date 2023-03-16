@@ -73,6 +73,7 @@ class DaddyTransformer(pl.LightningModule):
 
 		with torch.no_grad():
 			logits= self(x)
+			print(logits.shape, x.shape, y.shape)
 			loss = F.cross_entropy(logits.reshape(-1), y.reshape(-1))
 			# loss = self.transformer.shared_step(batch, batch_idx)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
