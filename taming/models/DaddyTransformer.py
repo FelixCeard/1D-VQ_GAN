@@ -42,9 +42,9 @@ class DaddyTransformer(pl.LightningModule):
 	def forward(self, x):
 		quant_z, z_indices = self.encode_to_z(x)
 
-		print('quant_z:', quant_z.shape, type(quant_z))
-		print('z_indices:', z_indices.shape, type(z_indices))
-		print(z_indices)
+		# print('quant_z:', quant_z.shape, type(quant_z))
+		# print('z_indices:', z_indices.shape, type(z_indices))
+		# print(z_indices)
 
 		# make the prediction
 		logits, _ = self.transformer(z_indices.long())
@@ -74,7 +74,7 @@ class DaddyTransformer(pl.LightningModule):
 
 		with torch.no_grad():
 			logits = self(x)[:, -1, :]
-			print(logits.shape, x.shape, y.shape)
+			# print(logits.shape, x.shape, y.shape)
 			loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 			# loss = self.transformer.shared_step(batch, batch_idx)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
