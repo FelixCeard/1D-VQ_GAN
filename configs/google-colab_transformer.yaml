@@ -32,10 +32,10 @@ model:
           dropout: 0.0
         lossconfig:
           target: taming.modules.losses.DummyLoss
-    cond_stage_config:
-      target: taming.models.dummy_cond_stage.DummyCondStage
-      params:
-        conditional_key: objects_bbox
+#    cond_stage_config:
+#      target: taming.models.dummy_cond_stage.DummyCondStage
+#      params:
+#        conditional_key: objects_bbox
 
 data:
   target: main.DataModuleFromConfig
@@ -45,15 +45,15 @@ data:
     train:
       target: taming.data.custom_dataset.DatasetLoader
       params:
-        path_wav: 1D-VQ_GAN/dataset/speech_data
+        path_wav: 1D-VQ_GAN/dataset
         split: train
     validation:
       target: taming.data.custom_dataset.DatasetLoader
       params:
-        path_wav: 1D-VQ_GAN/dataset/speech_data
+        path_wav: 1D-VQ_GAN/dataset
         split: dev
     test:
       target: taming.data.custom_dataset.DatasetLoader
       params:
-        path_wav: 1D-VQ_GAN/dataset/speech_data
+        path_wav: 1D-VQ_GAN/dataset
         split: test

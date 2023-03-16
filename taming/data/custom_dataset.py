@@ -43,7 +43,7 @@ class AudioDataLoader(Dataset):
 		df = pd.read_csv('./../../dataset/SDR_metadata.tsv', sep='	')
 		df = df[df['split'] == split.upper()] # filter for the specific thing
 		paths = df['file'].tolist()
-		paths = [os.path.join('dataset', p) for p in paths]
+		paths = [os.path.join(path_images, p) for p in paths]
 
 		# get images
 		# print('scanning the images')
