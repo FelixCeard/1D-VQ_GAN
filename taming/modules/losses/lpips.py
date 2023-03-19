@@ -29,7 +29,18 @@ class LPIPS1D(nn.Module):
 
     def forward(self, input, target):
         # in0_input, in1_input = (self.scaling_layer(input), self.scaling_layer(target))
-        outs0, outs1 = self.net(input), self.net(target)
+
+        # Convert to power spectrogram
+        input_spec = self.spec(input)
+        target_spec = self.spec(target)
+        # Apply SpecAugment
+        input_spec = self.spec_aug(input_spec)
+        target_spec = self.spec_aug(target_spec)
+        # Convert to mel-scale
+        input_mel = self.mel_scale(input_spec)
+        target_mel = self.mel_scale(target_spec)
+
+        outs0, outs1 = self.net(input_mel), self.net(target_mel)
         feats0, feats1, diffs = {}, {}, {}
         lins = [self.lin0, self.lin1, self.lin2, self.lin3]
         for kk in range(len(self.chns)):
