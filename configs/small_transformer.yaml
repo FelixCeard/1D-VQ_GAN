@@ -1,0 +1,70 @@
+model:
+  base_learning_rate: 4.5e-02
+  target: taming.models.DaddyTransformer.DaddyTransformer
+  params:
+    first_stage_key: wav
+    response_key: label
+    freeze_vq_vae: false
+    transformer_config:
+      target: taming.modules.transformer.mingpt.GPT
+      params:
+        vocab_size: 512
+        block_size: 1024
+        n_layer: 5
+        n_head: 8
+        n_embd: 64
+        num_classes: 10
+    first_stage_config:
+      target: taming.models.vqgan_1D.VQModel1D
+      params:
+        embed_dim: 32
+        n_embed: 64
+        image_key: wav
+#        ckpt_path: drive/MyDrive/NNTI/logs/2023-03-14T20-59-11custom_transformer/checkpoints/last.ckpt
+        ddconfig:
+          double_z: false
+          z_channels: 32
+          resolution: 32
+          in_channels: 1
+          out_ch: 1
+          ch: 32 # 32 => 3m param 128 => 30m param
+          ch_mult: [ 1,1,2,2,4 ]  # num_down = len(ch_mult)-1
+          num_res_blocks: 3
+          attn_resolutions: [ 16 ]
+          dropout: 0.2
+        lossconfig:
+          target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminator1D
+          params:
+            perceptual_weight: 0 # skip the VGG model loss part
+            disc_conditional: False
+            disc_in_channels: 1
+            disc_start: 1000
+            disc_weight: 0.8
+            codebook_weight: 1.0
+#      target: taming.models.dummy_cond_stage.DummyCondStage
+#      params:
+#        conditional_key: objects_bbox
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 1 # has to be one because of variable input length => no stacking possible
+    num_workers: 1
+    train:
+      target: taming.data.custom_dataset.DatasetLoader
+      params:
+        path_wav: dataset
+        tsv_path: dataset/SDR_metadata.tsv
+        split: train
+    validation:
+      target: taming.data.custom_dataset.DatasetLoader
+      params:
+        path_wav: dataset
+        tsv_path: dataset/SDR_metadata.tsv
+        split: dev
+    test:
+      target: taming.data.custom_dataset.DatasetLoader
+      params:
+        path_wav: dataset
+        tsv_path: dataset/SDR_metadata.tsv
+        split: test

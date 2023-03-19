@@ -139,9 +139,10 @@ class DaddyTransformer(pl.LightningModule):
 		self.manual_backward(loss)
 
 		# schedulers
-		sch1, sch2 = self.lr_schedulers()
-		sch1.step()
-		sch2.step()
+
+		schs = self.lr_schedulers()
+		for sch in schs:
+			sch.step()
 
 		# accumulate gradients of N batches
 		if (batch_idx + 1) % 16 == 0:
@@ -221,8 +222,18 @@ class DaddyTransformer(pl.LightningModule):
 		# 	torch.optim.lr_scheduler.LinearLR(optimizer), # low to high during the first epochs
 		# ]
 		return [opt_ae, opt_disc, optimizer], [
+			# transformer
 			torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1), # reduce after a few epochs
 			torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=25_000), # low to high during the first epochs
+
+			# generator
+			torch.optim.lr_scheduler.MultiStepLR(opt_ae, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1), # reduce after a few epochs
+			torch.optim.lr_scheduler.LinearLR(opt_ae, start_factor=0.1, total_iters=25_000), # low to high during the first epochs
+
+			# discriminator
+			torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1), # reduce after a few epochs
+			torch.optim.lr_scheduler.LinearLR(opt_disc, start_factor=0.1, total_iters=25_000), # low to high during the first epochs
+
 		]
 
 	def top_k_logits(self, logits, k):
