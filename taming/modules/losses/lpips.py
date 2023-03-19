@@ -38,7 +38,7 @@ class LPIPS1D(nn.Module):
         input_mel = self.mel_spec(input)
         target_mel = self.mel_spec(target)
 
-        outs0, outs1 = self.net(input_mel), self.net(target_mel)
+        outs0, outs1 = self.net(input_mel.T), self.net(target_mel.T)
         feats0, feats1, diffs = {}, {}, {}
         lins = [self.lin0, self.lin1, self.lin2, self.lin3]
         for kk in range(len(self.chns)):
