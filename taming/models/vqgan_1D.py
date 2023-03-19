@@ -403,6 +403,9 @@ class VQModel1D(pl.LightningModule):
 		if monitor is not None:
 			self.monitor = monitor
 
+		# manual optimization
+		self.automatic_optimization = False
+
 	def init_from_ckpt(self, path, ignore_keys=list()):
 		sd = torch.load(path, map_location="cpu")["state_dict"]
 		keys = list(sd.keys())
@@ -447,21 +450,41 @@ class VQModel1D(pl.LightningModule):
 		x = self.get_input(batch, self.image_key)
 		xrec, qloss = self(x)
 
-		if optimizer_idx == 0:
-			# autoencode
-			aeloss, log_dict_ae = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
-			                                last_layer=self.get_last_layer(), split="train")
-			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			wandb.log(log_dict_ae)
-			return aeloss
+		# if optimizer_idx == 0:
+		# autoencode
+		aeloss, log_dict_ae = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
+		                                last_layer=self.get_last_layer(), split="train")
+		self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+		# wandb.log(log_dict_ae)
+		# return aeloss
 
-		if optimizer_idx == 1:
-			# discriminator
-			discloss, log_dict_disc = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
-			                                    last_layer=self.get_last_layer(), split="train")
-			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-			wandb.log(log_dict_disc)
-			return discloss
+		# if optimizer_idx == 1:
+		# discriminator
+		discloss, log_dict_disc = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
+		                                    last_layer=self.get_last_layer(), split="train")
+		self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+
+		# backwards
+		self.manual_backward(aeloss)
+		self.manual_backward(discloss)
+
+		schs = self.lr_schedulers()
+		for sch in schs:
+			sch.step()
+
+		if (batch_idx + 1) % 16 == 0:
+			opt1, opt2 = self.optimizers()
+
+			# clip gradients
+			self.clip_gradients(opt1, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+			self.clip_gradients(opt2, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+
+			# VQ-VAE
+			opt1.step()
+			opt2.step()
+			opt1.zero_grad()
+			opt2.zero_grad()
+
 
 	def validation_step(self, batch, batch_idx):
 		x = self.get_input(batch, self.image_key)
@@ -489,7 +512,16 @@ class VQModel1D(pl.LightningModule):
 		                            lr=lr, betas=(0.5, 0.9))
 
 
-		return [opt_ae, opt_disc], []
+		return [opt_ae, opt_disc], [
+			# generator
+			torch.optim.lr_scheduler.MultiStepLR(opt_ae, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1),  # reduce after a few epochs
+			torch.optim.lr_scheduler.LinearLR(opt_ae, start_factor=0.1, total_iters=25_000),  # low to high during the first epochs
+
+			# discriminator
+			torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1),  # reduce after a few epochs
+			torch.optim.lr_scheduler.LinearLR(opt_disc, start_factor=0.1, total_iters=25_000),  # low to high during the first epochs
+
+		]
 		# return [opt_ae, opt_disc], [reduce_on_plateau_ae, reduce_on_plateau_disc]
 		# return [opt_ae], []  # skip LR scheduler
 
