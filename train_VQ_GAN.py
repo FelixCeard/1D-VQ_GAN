@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-sys.path.insert(1, './1D-VQ_GAN')
+# sys.path.insert(1, './1D-VQ_GAN')
 
 import logging
 import os
@@ -18,24 +18,25 @@ import wandb
 from VQ_train_utils import instantiate_from_config
 # !git clone https://github.com/FelixCeard/1D-VQ_GAN.git
 # connect to google drive
-from google.colab import drive
+# from google.colab import drive
 
-
-def train():
-	path_drive = '/content/drive'
-	drive.mount(path_drive)
+if __name__ == '__main__':
+    # path_drive = '/content/drive'
+	# drive.mount(path_drive)
+	path_drive = '../Logs'
+	os.makedirs(path_drive, exist_ok=True)
 
 	# fuck warnings, me and my homies hate on warnings
 	warnings.filterwarnings("ignore")
-	path_drive = 'drive/MyDrive'
+	# path_drive = 'drive/MyDrive'
 
 	# # wandb
 	wandb.login(key='e5ef4f3a1142de13823dd7b320a9e133b3f5bdfc')
-	wandb_logger = WandbLogger(project="[NNTI]VQ-GAN")
+	wandb_logger = WandbLogger(project="[NNTI]TrainGAN")
 
 	# load configs
 	logging.debug('loading configs')
-	configs = [OmegaConf.load('1D-VQ_GAN/configs/1d-VQ_GAN_google-colab.yaml')]
+	configs = [OmegaConf.load('configs/[TRAIN]Gan.yaml')]
 	config = OmegaConf.merge(*configs)
 
 	# model
@@ -61,16 +62,6 @@ def train():
 	os.makedirs(ckptdir, exist_ok=True)
 	os.makedirs(cfgdir, exist_ok=True)
 
-	class BestModelLogging(Callback):
-		def __init__(self, path):
-			self.path = path
-
-		def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-			loss = torch.mean(pl_module.aelosses) + torch.mean(pl_module.disclosses)
-			if pl_module.best_loss > loss:
-				pl_module.best_loss = loss
-				torch.save(model.state_dict(), self.path)
-
 	class AudioLoggingCallback(Callback):
 		def __init__(self, sample):
 			self.sample = sample
@@ -78,13 +69,14 @@ def train():
 			os.makedirs('./logging_audio', exist_ok=True)
 
 		def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-			model = pl_module
+			model = pl_module.first_stage_model
 			with torch.no_grad():
+				self.sample = self.sample.to(model.device)
 				rec = model.forward(self.sample.clone())[0]
 
-			model.logger.log_metrics({
-				'OG': self.get_audio(self.sample.detach().numpy(), sample_rate=8_000, caption='OG'),
-				'Reconstructed': self.get_audio(rec.detach().numpy(), sample_rate=8_000, caption='REC'),
+			pl_module.logger.log_metrics({
+				'OG': self.get_audio(self.sample.detach().cpu().numpy(), sample_rate=8_000, caption='OG'),
+				'Reconstructed': self.get_audio(rec.detach().cpu().numpy(), sample_rate=8_000, caption='REC'),
 			})
 			self.index += 1
 
@@ -98,8 +90,7 @@ def train():
 	callbacks = [
 		LearningRateMonitor(logging_interval='step'),
 		ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True),
-		AudioLoggingCallback(next(data.val_dataloader()._get_iterator())['wav']),
-		BestModelLogging(os.path.join(path_drive, 'NNTI', 'best_VQ_GAN.pt'))
+		AudioLoggingCallback(next(data.val_dataloader()._get_iterator())['wav'])
 	]
 
 	# trainer
@@ -111,8 +102,8 @@ def train():
 		logger=wandb_logger,
 		enable_checkpointing=True,
 		callbacks=callbacks,
-		accumulate_grad_batches=accumulate_grad_batches,
-		gradient_clip_val=0.5,
+		# accumulate_grad_batches=accumulate_grad_batches,
+		# gradient_clip_val=0.5,
 		accelerator="gpu",
 		devices=-1
 	)

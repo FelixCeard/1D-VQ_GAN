@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from taming.modules.discriminator.model import NLayerDiscriminator, NLayerDiscriminator1D, weights_init
-from taming.modules.losses.lpips import LPIPS
+from taming.modules.losses.lpips import LPIPS, LPIPS1D
 
 
 class DummyLoss(nn.Module):
@@ -145,7 +145,7 @@ class VQLPIPSWithDiscriminator1D(nn.Module):
 		assert disc_loss in ["hinge", "vanilla"]
 		self.codebook_weight = codebook_weight
 		self.pixel_weight = pixelloss_weight
-		# self.perceptual_loss = LPIPS().eval()
+		self.perceptual_loss = LPIPS1D().eval()
 		self.perceptual_weight = perceptual_weight
 
 		self.discriminator = NLayerDiscriminator1D(input_nc=disc_in_channels,
