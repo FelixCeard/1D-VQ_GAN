@@ -7,6 +7,8 @@ from collections import namedtuple
 
 from taming.util import get_ckpt_path
 
+from torchaudio.transforms import Spectrogram, MelSpectrogram
+
 class LPIPS1D(nn.Module):
     # Learned perceptual metric
     def __init__(self, use_dropout=True):
@@ -27,18 +29,14 @@ class LPIPS1D(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
+        self.mel_spec = MelSpectrogram(sample_rate=8_000)
+
     def forward(self, input, target):
         # in0_input, in1_input = (self.scaling_layer(input), self.scaling_layer(target))
 
         # Convert to power spectrogram
-        input_spec = self.spec(input)
-        target_spec = self.spec(target)
-        # Apply SpecAugment
-        input_spec = self.spec_aug(input_spec)
-        target_spec = self.spec_aug(target_spec)
-        # Convert to mel-scale
-        input_mel = self.mel_scale(input_spec)
-        target_mel = self.mel_scale(target_spec)
+        input_mel = self.mel_spec(input)
+        target_mel = self.mel_spec(target)
 
         outs0, outs1 = self.net(input_mel), self.net(target_mel)
         feats0, feats1, diffs = {}, {}, {}
