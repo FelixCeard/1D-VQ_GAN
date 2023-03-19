@@ -16,6 +16,7 @@ class LPIPS1D(nn.Module):
 
         # self.net = vgg16(pretrained=True, requires_grad=False)
         self.net = torch.hub.load('harritaylor/torchvggish', 'vggish')
+        self.net.preprocess = False
         self.net.eval()
 
         self.lin0 = NetLinLayer(self.chns[0], use_dropout=use_dropout)
