@@ -141,7 +141,7 @@ if __name__ == '__main__':
     iterator = data.val_dataloader()._get_iterator()
     callbacks = [
         LearningRateMonitor(logging_interval='step'),
-        ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True, save_top_k=5),
+        ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True, save_top_k=5, monitor='test/F1_epoch'),
         AudioLoggingCallback([next(iterator) for _ in range(10)])
     ]
 
