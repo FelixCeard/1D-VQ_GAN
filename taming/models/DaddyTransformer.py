@@ -21,6 +21,7 @@ class DaddyTransformer(pl.LightningModule):
 	             first_stage_config,
 	             first_stage_key="image",
 	             response_key='label',
+	             ckpt_path=None,
 	             sos_token=0,
 	             freeze_vq_vae:bool=True,
 	             *args: Any,
@@ -41,7 +42,24 @@ class DaddyTransformer(pl.LightningModule):
 		if freeze_vq_vae:
 			self.first_stage_model.freeze()
 
+		self.freeze_vq_vae = not freeze_vq_vae
+
 		self.transformer = instantiate_from_config(config=transformer_config)
+
+		if ckpt_path is not None:
+			self.init_from_ckpt(ckpt_path, ignore_keys=[])
+
+
+	def init_from_ckpt(self, path, ignore_keys=list()):
+		sd = torch.load(path, map_location="cpu")["state_dict"]
+		keys = list(sd.keys())
+		for k in keys:
+			for ik in ignore_keys:
+				if k.startswith(ik):
+					print("Deleting key {} from state_dict.".format(k))
+					del sd[k]
+		self.load_state_dict(sd, strict=False)
+		print(f"Restored from {path}")
 
 	def init_first_stage_from_ckpt(self, config):
 		model = instantiate_from_config(config)
@@ -65,15 +83,16 @@ class DaddyTransformer(pl.LightningModule):
 
 		# qloss = torch.tensor([0]).to(self.device) # I dont use this loss, so I just skip it
 
-		aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
-		                                                  last_layer=self.first_stage_model.get_last_layer(),
-		                                                  split="val")
+		if self.freeze_vq_vae:
+			aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
+			                                                  last_layer=self.first_stage_model.get_last_layer(),
+			                                                  split="val")
 
-		discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1, self.first_stage_model.global_step,
-		                                                      last_layer=self.first_stage_model.get_last_layer(),
-		                                                      split="val")
+			discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1, self.first_stage_model.global_step,
+			                                                      last_layer=self.first_stage_model.get_last_layer(),
+			                                                      split="val")
 
-		self.log_dict(log_dict_ae | log_dict_disc)
+			self.log_dict(log_dict_ae | log_dict_disc)
 
 		#### transformer
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
@@ -103,19 +122,31 @@ class DaddyTransformer(pl.LightningModule):
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
 		# y = F.one_hot(y.reshape(-1).long(), num_classes=10)
-		xrec, qloss = self.first_stage_model(x)
+		if self.freeze_vq_vae:
+			xrec, qloss = self.first_stage_model(x)
 
-		# autoencode
-		aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0,
-		                                                  self.first_stage_model.global_step,
-		                                                  last_layer=self.first_stage_model.get_last_layer(),
-		                                                  split="train")
+			# autoencode
+			aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0,
+			                                                  self.first_stage_model.global_step,
+			                                                  last_layer=self.first_stage_model.get_last_layer(),
+			                                                  split="train")
 
-		# discriminator
-		discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1,
-		                                                      self.first_stage_model.global_step,
-		                                                      last_layer=self.first_stage_model.get_last_layer(),
-		                                                      split="train")
+			# discriminator
+			discloss, log_dict_disc = self.first_stage_model.loss(qloss, x, xrec, 1,
+			                                                      self.first_stage_model.global_step,
+			                                                      last_layer=self.first_stage_model.get_last_layer(),
+			                                                      split="train")
+
+			self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
+			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+
+			# backwards
+			self.manual_backward(aeloss)
+			self.manual_backward(discloss)
+
+
 		logits = self(x)[:, 0, :]
 		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 
@@ -128,14 +159,8 @@ class DaddyTransformer(pl.LightningModule):
 		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 		self.log("train/F1", f1, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 		self.log('train/Accuracy', acc, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-		self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-		self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
-		self.log_dict(log_dict_ae, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-		self.log_dict(log_dict_disc, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 
 		# backwards
-		self.manual_backward(aeloss)
-		self.manual_backward(discloss)
 		self.manual_backward(loss)
 
 		# schedulers
@@ -149,18 +174,21 @@ class DaddyTransformer(pl.LightningModule):
 			opt1, opt2, opt3 = self.optimizers()
 
 			# clip gradients
-			self.clip_gradients(opt1, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
-			self.clip_gradients(opt2, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+			if self.freeze_vq_vae:
+				self.clip_gradients(opt1, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+				self.clip_gradients(opt2, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
 			self.clip_gradients(opt3, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
 
-			# VQ-VAE
-			opt1.step()
-			opt2.step()
+			if self.freeze_vq_vae:
+				# VQ-VAE
+				opt1.step()
+				opt2.step()
 			# transformer
 			opt3.step()
 
-			opt1.zero_grad()
-			opt2.zero_grad()
+			if self.freeze_vq_vae:
+				opt1.zero_grad()
+				opt2.zero_grad()
 			opt3.zero_grad()
 
 		return loss

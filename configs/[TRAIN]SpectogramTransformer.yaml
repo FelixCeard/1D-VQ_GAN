@@ -5,7 +5,8 @@ model:
   params:
     first_stage_key: spec
     response_key: label
-    freeze_vq_vae: false
+    freeze_vq_vae: true
+    ckpt_path: C:/Users/felix/PycharmProjects/Logs/NNTI/logs/Spectrosformer1/checkpoints/last.ckpt # pretrained weights
     transformer_config:
       target: taming.modules.transformer.mingpt.GPT
       params:
@@ -13,7 +14,7 @@ model:
         block_size: 512
         n_layer: 5
         n_head: 8
-        n_embd: 128
+        n_embd: 64
         num_classes: 10
     first_stage_config:
       target: taming.models.vqgan_1D.VQModel1D

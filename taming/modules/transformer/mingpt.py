@@ -139,7 +139,12 @@ class GPT(nn.Module):
         self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
         # decoder head
         self.ln_f = nn.LayerNorm(config.n_embd)
-        self.head = nn.Linear(config.n_embd, num_classes, bias=False)
+        self.head = nn.Linear(config.n_embd, config.n_embd, bias=False)
+
+        self.pre_classifier = nn.Linear(config.n_embd, config.n_embd, bias=True)
+        self.classification = nn.Linear(config.n_embd, num_classes, bias=True)
+
+
         self.block_size = config.block_size
         self.apply(self._init_weights)
         self.config = config

@@ -46,6 +46,7 @@ if __name__ == '__main__':
     # model
     print('loading model')
     model = instantiate_from_config(config.model)
+    # model = model.load_from_checkpoint('C:/Users/felix/PycharmProjects/Logs/NNTI/logs/Spectrosformer1/checkpoints/last.ckpt', hparams_file='configs/[TRAIN]SpectogramTransformer.yaml')
 
     # data
     print('loading data')
@@ -79,7 +80,7 @@ if __name__ == '__main__':
             fig, ax = plt.subplots(2, 10, figsize=(10, 2), sharex=True)
 
             for i in range(10):
-                sample = model.get_input(self.batch[i], pl_module.image_key)
+                sample = model.get_input(self.batch[i], model.image_key)
                 with torch.no_grad():
                     sample = sample.to(model.device)
                     rec = model.forward(sample.clone())[0]
@@ -141,7 +142,7 @@ if __name__ == '__main__':
     iterator = data.val_dataloader()._get_iterator()
     callbacks = [
         LearningRateMonitor(logging_interval='step'),
-        ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True, save_top_k=5, monitor='test/F1_epoch'),
+        ModelCheckpoint(dirpath=ckptdir, filename="{epoch:06}", save_last=True, save_top_k=5, monitor='test/F1_epoch', every_n_train_steps=2),
         AudioLoggingCallback([next(iterator) for _ in range(10)])
     ]
 
