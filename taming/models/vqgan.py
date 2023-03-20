@@ -333,7 +333,7 @@ class GumbelVQ(VQModel):
 
     def validation_step(self, batch, batch_idx):
         x = self.get_input(batch, self.image_key)
-        xrec, qloss = self(x, return_pred_indices=True)
+        xrec, qloss = self(x)
         aeloss, log_dict_ae = self.loss(qloss, x, xrec, 0, self.global_step,
                                         last_layer=self.get_last_layer(), split="val")
 

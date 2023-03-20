@@ -116,7 +116,7 @@ class DaddyTransformer(pl.LightningModule):
 		                                                      self.first_stage_model.global_step,
 		                                                      last_layer=self.first_stage_model.get_last_layer(),
 		                                                      split="train")
-		logits = self(x)[:, -1, :]
+		logits = self(x)[:, 0, :]
 		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 
 		accuracy = Accuracy(task='multiclass', num_classes=10)

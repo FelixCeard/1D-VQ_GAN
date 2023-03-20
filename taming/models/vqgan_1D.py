@@ -441,18 +441,21 @@ class VQModel1D(pl.LightningModule):
 
 	def get_input(self, batch, k):
 		x = batch[k]
-		if len(x.shape) == 3:
-			x = x[..., None]
+		# if len(x.shape) == 3:
+		# 	x = x[..., None]
+		# hard reshape
+		if k == self.image_key:
+			x = x.reshape(26, -1)
 		# x = x.permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
 		return x.float()
 
-	def training_step(self, batch, batch_idx, optimizer_idx):
+	def training_step(self, batch, batch_idx):
 		x = self.get_input(batch, self.image_key)
 		xrec, qloss = self(x)
 
 		# if optimizer_idx == 0:
 		# autoencode
-		aeloss, log_dict_ae = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
+		aeloss, log_dict_ae = self.loss(qloss, x, xrec, 0, self.global_step,
 		                                last_layer=self.get_last_layer(), split="train")
 		self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 		# wandb.log(log_dict_ae)
@@ -460,7 +463,7 @@ class VQModel1D(pl.LightningModule):
 
 		# if optimizer_idx == 1:
 		# discriminator
-		discloss, log_dict_disc = self.loss(qloss, x, xrec, optimizer_idx, self.global_step,
+		discloss, log_dict_disc = self.loss(qloss, x, xrec, 1, self.global_step,
 		                                    last_layer=self.get_last_layer(), split="train")
 		self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
@@ -488,7 +491,10 @@ class VQModel1D(pl.LightningModule):
 
 	def validation_step(self, batch, batch_idx):
 		x = self.get_input(batch, self.image_key)
+		# print('X:', x.shape)
 		xrec, qloss = self(x)
+		# print('xrec:', xrec.shape)
+		# print('xrec:', xrec.shape)
 
 		aeloss, log_dict_ae = self.loss(qloss, x, xrec, 0, self.global_step,
 		                                last_layer=self.get_last_layer(), split="val")

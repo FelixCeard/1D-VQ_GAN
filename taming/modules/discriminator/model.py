@@ -1,6 +1,6 @@
 import functools
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 from taming.modules.util import ActNorm
 
@@ -66,6 +66,15 @@ class NLayerDiscriminator(nn.Module):
         """Standard forward."""
         return self.main(input)
 
+class DebugModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        print(x.shape)
+        return x
+
+
 class NLayerDiscriminator1D(nn.Module):
     """Defines a PatchGAN discriminator as in Pix2Pix
         --> see https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py
@@ -88,7 +97,7 @@ class NLayerDiscriminator1D(nn.Module):
         else:
             use_bias = norm_layer != nn.BatchNorm1d
 
-        kw = 4
+        kw = 3
         padw = 0
         sequence = [nn.Conv1d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
         nf_mult = 1
@@ -97,7 +106,9 @@ class NLayerDiscriminator1D(nn.Module):
             nf_mult_prev = nf_mult
             nf_mult = min(2 ** n, 8)
             sequence += [
+                # DebugModule(),
                 nn.Conv1d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
+                # DebugModule(),
                 norm_layer(ndf * nf_mult),
                 nn.LeakyReLU(0.2, True)
             ]
@@ -121,4 +132,10 @@ class NLayerDiscriminator1D(nn.Module):
     def forward(self, input):
         """Standard forward."""
         # print(input.shape)
+
+        # min input is 26, 23
+        # print('INP:', input.shape[-1])
+        if input.shape[-1] < 64:
+            input = F.pad(input=input, pad=(0, 64 - input.shape[-1]))
+
         return self.main(input)

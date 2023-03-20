@@ -153,6 +153,8 @@ class VQLPIPSWithDiscriminator1D(nn.Module):
 		                                           use_actnorm=use_actnorm,
 		                                           ndf=disc_ndf
 		                                           ).apply(weights_init)
+
+		print(self.discriminator)
 		self.discriminator_iter_start = disc_start
 		if disc_loss == "hinge":
 			self.disc_loss = hinge_d_loss
