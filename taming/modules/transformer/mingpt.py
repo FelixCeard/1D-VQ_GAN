@@ -187,6 +187,12 @@ class GPT(nn.Module):
         if targets is not None:
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
 
+        # return ONLY THE FIRST PREDICTION
+        logits = logits[:, 0, :] # pool the first output
+        logits = self.pre_classifier(logits)
+        logits = nn.ReLU()(logits)  # (bs, dim)
+        logits = self.classification(logits)
+
         return logits, loss
 
     def forward_with_past(self, idx, embeddings=None, targets=None, past=None, past_length=None):

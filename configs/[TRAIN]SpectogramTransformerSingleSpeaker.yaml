@@ -5,8 +5,8 @@ model:
   params:
     first_stage_key: spec
     response_key: label
-    freeze_vq_vae: true
-    ckpt_path: C:/Users/felix/PycharmProjects/Logs/NNTI/logs/2023-03-21T01-26-47spectroformer/checkpoints/pls_be_the_right_model.ckpt # pretrained weights
+    freeze_vq_vae: false
+#    ckpt_path: C:/Users/felix/PycharmProjects/Logs/NNTI/logs/Spectrosformer1/checkpoints/last.ckpt # pretrained weights
     transformer_config:
       target: taming.modules.transformer.mingpt.GPT
       params:
@@ -16,9 +16,7 @@ model:
         n_head: 4
         n_embd: 64
         num_classes: 10
-        embd_pdrop: 0.3
-        resid_pdrop: 0.3
-        attn_pdrop: 0.3
+
     first_stage_config:
       target: taming.models.vqgan_1D.VQModel1D
       params:
@@ -48,15 +46,6 @@ model:
             disc_weight: 0.8
             codebook_weight: 1.0
 
-#    temperature_scheduler_config:
-#      target: taming.lr_scheduler.LambdaWarmUpCosineScheduler
-#      params:
-#        warm_up_steps: 10000
-#        lr_min: 1e-8
-#        lr_max: 1e-2
-#        lr_start: 1e-8
-#        max_decay_steps: 200000
-
 
 data:
   target: main.DataModuleFromConfig
@@ -69,6 +58,7 @@ data:
         path_wav: dataset
         tsv_path: dataset/SDR_metadata.tsv
         split: train
+        speaker: theo
         augment: false
     validation:
       target: taming.data.custom_image_dataset.DatasetLoader
@@ -76,6 +66,7 @@ data:
         path_wav: dataset
         tsv_path: dataset/SDR_metadata.tsv
         split: dev
+#        speaker: theo
         augment: false
     test:
       target: taming.data.custom_image_dataset.DatasetLoader
@@ -83,3 +74,5 @@ data:
         path_wav: dataset
         tsv_path: dataset/SDR_metadata.tsv
         split: test
+#        speaker: theo
+        augment: false

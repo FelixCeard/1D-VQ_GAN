@@ -43,11 +43,13 @@ class DaddyTransformer(pl.LightningModule):
 			self.first_stage_model.freeze()
 
 		self.freeze_vq_vae = not freeze_vq_vae
+		# self.freeze_transformer = True
+		self.switch_after_n_epochs = 25
 
 		self.transformer = instantiate_from_config(config=transformer_config)
 
 		if ckpt_path is not None:
-			self.init_from_ckpt(ckpt_path, ignore_keys=[])
+			self.init_from_ckpt(ckpt_path, ignore_keys=['transformer.head.weight'])
 
 
 	def init_from_ckpt(self, path, ignore_keys=list()):
@@ -58,7 +60,10 @@ class DaddyTransformer(pl.LightningModule):
 				if k.startswith(ik):
 					print("Deleting key {} from state_dict.".format(k))
 					del sd[k]
+		# try:
 		self.load_state_dict(sd, strict=False)
+		# except RuntimeError:
+		# 	print('Upsi, you did sth. wrong UwU')
 		print(f"Restored from {path}")
 
 	def init_first_stage_from_ckpt(self, config):
@@ -81,8 +86,6 @@ class DaddyTransformer(pl.LightningModule):
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		xrec, qloss = self.first_stage_model(x)
 
-		# qloss = torch.tensor([0]).to(self.device) # I dont use this loss, so I just skip it
-
 		if self.freeze_vq_vae:
 			aeloss, log_dict_ae = self.first_stage_model.loss(qloss, x, xrec, 0, self.first_stage_model.global_step,
 			                                                  last_layer=self.first_stage_model.get_last_layer(),
@@ -99,7 +102,7 @@ class DaddyTransformer(pl.LightningModule):
 		y = self.first_stage_model.get_input(batch, self.response_key)
 
 		with torch.no_grad():
-			logits = self(x)[:, -1, :]
+			logits = self(x)#[:, -1, :]
 			# print(logits.shape, x.shape, y.shape)
 			loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 			# loss = self.transformer.shared_step(batch, batch_idx)
@@ -111,18 +114,13 @@ class DaddyTransformer(pl.LightningModule):
 			f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 			self.log("test/F1", f1, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
-			return loss
-
-		# loss = self.transformer.shared_step(batch, batch_idx)
-		# self.log("val/TransLoss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-
-		# return loss
 
 	def training_step(self, batch, batch_idx):
 		x = self.first_stage_model.get_input(batch, self.first_stage_key)
 		y = self.first_stage_model.get_input(batch, self.response_key)
-		# y = F.one_hot(y.reshape(-1).long(), num_classes=10)
+
 		if self.freeze_vq_vae:
+			# no freeze
 			xrec, qloss = self.first_stage_model(x)
 
 			# autoencode
@@ -142,12 +140,8 @@ class DaddyTransformer(pl.LightningModule):
 			self.log("train/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
-			# backwards
-			self.manual_backward(aeloss)
-			self.manual_backward(discloss)
 
-
-		logits = self(x)[:, 0, :]
+		logits = self(x)
 		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 
 		accuracy = Accuracy(task='multiclass', num_classes=10)
@@ -161,10 +155,14 @@ class DaddyTransformer(pl.LightningModule):
 		self.log('train/Accuracy', acc, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
 		# backwards
-		self.manual_backward(loss)
+		if self.current_epoch < self.switch_after_n_epochs and self.freeze_vq_vae:
+			# backwards
+			self.manual_backward(aeloss)
+			self.manual_backward(discloss)
+		else:
+			self.manual_backward(loss)
 
 		# schedulers
-
 		schs = self.lr_schedulers()
 		for sch in schs:
 			sch.step()
@@ -174,24 +172,22 @@ class DaddyTransformer(pl.LightningModule):
 			opt1, opt2, opt3 = self.optimizers()
 
 			# clip gradients
-			if self.freeze_vq_vae:
+			if self.current_epoch < self.switch_after_n_epochs and self.freeze_vq_vae:
 				self.clip_gradients(opt1, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
 				self.clip_gradients(opt2, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
-			self.clip_gradients(opt3, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
 
-			if self.freeze_vq_vae:
-				# VQ-VAE
 				opt1.step()
 				opt2.step()
-			# transformer
-			opt3.step()
 
-			if self.freeze_vq_vae:
 				opt1.zero_grad()
 				opt2.zero_grad()
-			opt3.zero_grad()
+			else:
+				self.clip_gradients(opt3, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
 
-		return loss
+				opt3.step()
+
+				opt3.zero_grad()
+
 
 	def configure_optimizers(self):
 		#### VQ-VAE
@@ -244,22 +240,17 @@ class DaddyTransformer(pl.LightningModule):
 		optimizer = torch.optim.AdamW(optim_groups, lr=self.learning_rate, betas=(0.9, 0.95))
 
 
-		# only change the transformer weights
-		# return [optimizer], [
-		# 	torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 80], gamma=0.1), # reduce after a few epochs
-		# 	torch.optim.lr_scheduler.LinearLR(optimizer), # low to high during the first epochs
-		# ]
 		return [opt_ae, opt_disc, optimizer], [
 			# transformer
-			torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1), # reduce after a few epochs
+			torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[4_000 * 100, 4_000 * 120], gamma=0.1), # reduce after a few epochs
 			torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=25_000), # low to high during the first epochs
 
 			# generator
-			torch.optim.lr_scheduler.MultiStepLR(opt_ae, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1), # reduce after a few epochs
+			torch.optim.lr_scheduler.MultiStepLR(opt_ae, milestones=[4_000 * 30, 4_000 * 50], gamma=0.1), # reduce after a few epochs
 			torch.optim.lr_scheduler.LinearLR(opt_ae, start_factor=0.1, total_iters=25_000), # low to high during the first epochs
 
 			# discriminator
-			torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[4_000 * 30, 4_000 * 80], gamma=0.1), # reduce after a few epochs
+			torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[4_000 * 30, 4_000 * 50], gamma=0.1), # reduce after a few epochs
 			torch.optim.lr_scheduler.LinearLR(opt_disc, start_factor=0.1, total_iters=25_000), # low to high during the first epochs
 
 		]

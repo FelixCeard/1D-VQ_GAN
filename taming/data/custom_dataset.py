@@ -12,7 +12,8 @@ import torch.nn.functional as F
 from audiomentations import AddGaussianNoise, HighPassFilter, OneOf, PitchShift, RoomSimulator, SomeOf, TanhDistortion, \
 	TimeStretch
 from torch.utils.data import Dataset
-
+import torchaudio.functional as Faudio
+from torchaudio.transforms import FrequencyMasking, TimeStretch, PitchShift
 import pandas as pd
 
 
@@ -31,7 +32,7 @@ class AudioDataLoader(Dataset):
 		if not os.path.isdir(self.path_images):
 			raise PathException(f"The given path is not a valid: {self.path_images}")
 
-	def __init__(self, path_images: str, max_num_images=-1, sampling_rate=8_000, apply_transform: bool = False, split:str = 'train', tsv_path='./../../dataset/SDR_metadata.tsv'):
+	def __init__(self, path_images: str, max_num_images=-1, sampling_rate=8_000, apply_transform: bool = False, split:str = 'train', tsv_path='./../../dataset/SDR_metadata.tsv', speaker:str='all'):
 		# print('init custom image-sketch dataset')
 		self.path_images = path_images
 
@@ -42,6 +43,8 @@ class AudioDataLoader(Dataset):
 		# filtering the paths
 		df = pd.read_csv(tsv_path, sep='	')
 		df = df[df['split'] == split.upper()] # filter for the specific thing
+		if speaker != 'all':
+			df = df[df['speaker'] == speaker]
 		paths = df['file'].tolist()
 		paths = [os.path.join(path_images, p) for p in paths]
 
@@ -71,8 +74,10 @@ class AudioDataLoader(Dataset):
 		path_wave = self.raw_wave_paths[idx]
 		data, sr = librosa.load(path_wave, sr=self.sampling_rate)
 
-		data = torch.tensor(data)  # .reshape(1, -1)
+		# transform
+		# if random.random() > 0.6: # in 40% of the case
 
+		data = torch.tensor(data)  # .reshape(1, -1)
 
 		if (diff := data.shape[0] % 16) > 0:
 			data = F.pad(input=data, pad=(0, 16 - diff))
@@ -94,8 +99,8 @@ class TrainLoader(AudioDataLoader):
 			self.size = max_indx
 
 class DatasetLoader(AudioDataLoader):
-	def __init__(self, path_wav: str, max_num_images=-1, sampling_rate=8_000, split='train', tsv_path:str='.'):
-		super().__init__(path_wav, max_num_images, sampling_rate, apply_transform=False, split=split, tsv_path=tsv_path)
+	def __init__(self, path_wav: str, max_num_images=-1, sampling_rate=8_000, split='train', tsv_path:str='.', speaker:str = 'all'):
+		super().__init__(path_wav, max_num_images, sampling_rate, apply_transform=False, split=split, tsv_path=tsv_path, speaker=speaker)
 
 
 class TestLoader(AudioDataLoader):
