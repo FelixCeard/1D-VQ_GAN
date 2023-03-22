@@ -1,6 +1,6 @@
 # 1d Audio VQ-GAN
-
-## What exactly is this thing bro?
+https://github.com/FelixCeard/1D-VQ_GAN
+## What exactly is this thing?
 
 I first train a VAE to compress the raw wav data (**not** the spectogram but the individual samples).
 The VQ-VAE is a VAE using a code book to make the VAE not only more robust to noise, but also to be able to give give
