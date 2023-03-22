@@ -125,7 +125,7 @@ class Block(nn.Module):
 class GPT(nn.Module):
     """  the full GPT language model, with a context size of block_size """
     def __init__(self, vocab_size, block_size, n_layer=12, n_head=8, n_embd=256,
-                 embd_pdrop=0., resid_pdrop=0., attn_pdrop=0., n_unmasked=0, num_classes:int = 10):
+                 embd_pdrop=0., resid_pdrop=0., attn_pdrop=0., n_unmasked=0, num_classes:int = 10, train_unsupervised:bool = True):
         super().__init__()
         config = GPTConfig(vocab_size=vocab_size, block_size=block_size,
                            embd_pdrop=embd_pdrop, resid_pdrop=resid_pdrop, attn_pdrop=attn_pdrop,
@@ -140,6 +140,8 @@ class GPT(nn.Module):
         # decoder head
         self.ln_f = nn.LayerNorm(config.n_embd)
         self.head = nn.Linear(config.n_embd, config.n_embd, bias=False)
+
+        self.unsupervised = train_unsupervised
 
         self.pre_classifier = nn.Linear(config.n_embd, config.n_embd, bias=True)
         self.classification = nn.Linear(config.n_embd, num_classes, bias=True)
@@ -187,13 +189,16 @@ class GPT(nn.Module):
         if targets is not None:
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
 
-        # return ONLY THE FIRST PREDICTION
-        logits = logits[:, 0, :] # pool the first output
-        logits = self.pre_classifier(logits)
-        logits = nn.ReLU()(logits)  # (bs, dim)
-        logits = self.classification(logits)
+        if self.unsupervised:
+            return logits, loss
+        else:
+            # return ONLY THE FIRST PREDICTION
+            logits = logits[:, 0, :] # pool the first output
+            logits = self.pre_classifier(logits)
+            logits = nn.ReLU()(logits)  # (bs, dim)
+            logits = self.classification(logits)
 
-        return logits, loss
+            return logits, loss
 
     def forward_with_past(self, idx, embeddings=None, targets=None, past=None, past_length=None):
         # inference only

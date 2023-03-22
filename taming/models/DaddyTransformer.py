@@ -24,6 +24,7 @@ class DaddyTransformer(pl.LightningModule):
 	             ckpt_path=None,
 	             sos_token=0,
 	             freeze_vq_vae:bool=True,
+	             train_unsupervised: bool = True,
 	             *args: Any,
 	             **kwargs: Any):
 		super().__init__(*args, **kwargs)
@@ -44,13 +45,16 @@ class DaddyTransformer(pl.LightningModule):
 
 		self.freeze_vq_vae = not freeze_vq_vae
 		# self.freeze_transformer = True
-		self.switch_after_n_epochs = 25
+		self.switch_after_n_epochs = -1
 
 		self.transformer = instantiate_from_config(config=transformer_config)
 
 		if ckpt_path is not None:
 			self.init_from_ckpt(ckpt_path, ignore_keys=['transformer.head.weight'])
 
+		self.unsupervised = train_unsupervised
+
+		self.skips = 0
 
 	def init_from_ckpt(self, path, ignore_keys=list()):
 		sd = torch.load(path, map_location="cpu")["state_dict"]
@@ -103,15 +107,39 @@ class DaddyTransformer(pl.LightningModule):
 
 		with torch.no_grad():
 			logits = self(x)#[:, -1, :]
-			# print(logits.shape, x.shape, y.shape)
-			loss = F.cross_entropy(logits.reshape(1, -1), y.long())
+			quant_z, z_indices = self.encode_to_z(x)
+			accuracy = Accuracy(task='multiclass', num_classes=128).to(self.device)
+			F1 = F1Score(task='multilabel').to(self.device)
+			# print(logits.shape, z_indices.shape, y.shape)
+			loss = None
+			if self.unsupervised:
+				quant_z, z_indices = self.encode_to_z(x)
+				# print(logits.shape, z_indices.shape)
+				if sum(z_indices.shape) <= 2:
+					self.skips += 1
+					return
+				L = torch.squeeze(logits[:, :-1, :])
+				L = F.softmax(L)  # for probabilities
+				Z = torch.squeeze(z_indices)[1:]
+				if len(L.shape) == 1:
+					L = torch.unsqueeze(L, 0)
+				if len(Z.shape) > 1:
+					Z = Z.reshape(-1)
+				loss = F.cross_entropy(L, Z)
+				acc = accuracy(L, Z)
+				f1 = F1(L, Z)
+			else:
+				accuracy = Accuracy(task='multiclass', num_classes=10)#.to(self.device)
+				F1 = F1Score(task='multilabel')#.to(self.device)
+				loss = F.cross_entropy(logits.reshape(1, -1), y.long())
+				acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
+				f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
+			# loss = F.cross_entropy(logits.reshape(1, -1), y.long())
 			# loss = self.transformer.shared_step(batch, batch_idx)
-			accuracy = Accuracy(task='multiclass', num_classes=10)
-			acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
+			# acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 			self.log('val/Accuracy', acc, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 			self.log("val/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
-			F1 = F1Score(task='multilabel')
-			f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
+			# f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 			self.log("test/F1", f1, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
 
@@ -141,18 +169,39 @@ class DaddyTransformer(pl.LightningModule):
 			self.log("train/discloss", discloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
 
+		accuracy = Accuracy(task='multiclass', num_classes=128).to(self.device)
+		F1 = F1Score(task='multilabel').to(self.device)
+
 		logits = self(x)
-		loss = F.cross_entropy(logits.reshape(1, -1), y.long())
+		loss = None
+		if self.unsupervised:
+			quant_z, z_indices = self.encode_to_z(x)
+			# print(logits.shape, z_indices.shape)
+			if sum(z_indices.shape) <= 2:
+				self.skips += 1
+				return
+			L = torch.squeeze(logits[:, :-1, :])
+			L = F.softmax(L)  # for probabilities
+			Z = torch.squeeze(z_indices)[1:]
+			if len(L.shape) == 1:
+				L = torch.unsqueeze(L, 0)
+			if len(Z.shape) > 1:
+				Z = Z.reshape(-1)
+			loss = F.cross_entropy(L, Z)
+			acc = accuracy(L, Z)
+			f1 = F1(L, Z)
+		else:
+			accuracy = Accuracy(task='multiclass', num_classes=10).to(self.device)
+			F1 = F1Score(task='multilabel').to(self.device)
+			loss = F.cross_entropy(logits.reshape(1, -1), y.long())
+			acc = accuracy(logits.reshape(1, -1), y.long())
+			f1 = F1(logits.reshape(1, -1), y.long())
 
-		accuracy = Accuracy(task='multiclass', num_classes=10)
-		F1 = F1Score(task='multilabel')
-
-		acc = accuracy(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
-		f1 = F1(logits.reshape(1, -1).detach().cpu(), y.long().cpu())
 
 		self.log("train/Transloss", loss, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 		self.log("train/F1", f1, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 		self.log('train/Accuracy', acc, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+		self.log('train/skips', self.skips, prog_bar=False, logger=True, on_step=True, on_epoch=True)
 
 		# backwards
 		if self.current_epoch < self.switch_after_n_epochs and self.freeze_vq_vae:

@@ -1,0 +1,88 @@
+model:
+  base_learning_rate: 4.5e-05
+
+  target: taming.models.DaddyTransformer.DaddyTransformer
+  params:
+    first_stage_key: spec
+    response_key: label
+    freeze_vq_vae: true
+    train_unsupervised: false
+    ckpt_path: C:/Users/felix/PycharmProjects/Logs/NNTI/logs/2023-03-22T17-23-54Unsup2/checkpoints/last.ckpt # pretrained weights
+    transformer_config:
+      target: taming.modules.transformer.mingpt.GPT
+      params:
+        vocab_size: 128
+        block_size: 512
+        n_layer: 3
+        n_head: 4
+        n_embd: 128
+        num_classes: 10
+        embd_pdrop: 0.3
+        resid_pdrop: 0.3
+        attn_pdrop: 0.3
+        train_unsupervised: false
+    first_stage_config:
+      target: taming.models.vqgan_1D.VQModel1D
+      params:
+        embed_dim: 64
+        n_embed: 128
+        image_key: spec
+        ddconfig:
+          double_z: false
+          z_channels: 64
+          resolution: 64
+          in_channels: 26
+          out_ch: 26
+          ch: 32 # 32 => 3m param 128 => 30m param
+          ch_mult: [ 1,1,2,2,4 ]  # num_down = len(ch_mult)-1
+          num_res_blocks: 3
+          attn_resolutions: [ 32 ]
+          dropout: 0.1
+
+
+        lossconfig:
+          target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminator1D
+          params:
+            perceptual_weight: 0 # skip the VGG model loss part
+            disc_conditional: False
+            disc_in_channels: 26 # fuuuuck
+            disc_start: 1000
+            disc_weight: 0.8
+            codebook_weight: 1.0
+
+#    temperature_scheduler_config:
+#      target: taming.lr_scheduler.LambdaWarmUpCosineScheduler
+#      params:
+#        warm_up_steps: 10000
+#        lr_min: 1e-8
+#        lr_max: 1e-2
+#        lr_start: 1e-8
+#        max_decay_steps: 200000
+
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 1 # has to be one because of variable input length => no stacking possible
+    num_workers: 1
+    train:
+      target: taming.data.custom_image_dataset.DatasetLoader
+      params:
+        path_wav: dataset
+        tsv_path: dataset/SDR_metadata.tsv
+        split: train
+        augment: false
+    validation:
+      target: taming.data.custom_image_dataset.DatasetLoader
+      params:
+        path_wav: dataset
+        tsv_path: dataset/SDR_metadata.tsv
+        split: dev
+        augment: false
+    test:
+      target: taming.data.custom_image_dataset.DatasetLoader
+      params:
+        path_wav: dataset
+        tsv_path: dataset/SDR_metadata.tsv
+        split: test
+        augment: false
