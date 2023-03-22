@@ -86,7 +86,7 @@ class AudioDataLoader(Dataset):
 
 		label = int(path_wave.split('/')[-1][0])
 
-		return {"wav": data, 'sampling_rate': sr, 'label':label}
+		return {"spec": data, 'sampling_rate': sr, 'label':label}
 
 
 class TrainLoader(AudioDataLoader):
