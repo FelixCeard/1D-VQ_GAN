@@ -164,7 +164,7 @@ class GPT(nn.Module):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def forward(self, idx, embeddings=None, targets=None):
+    def forward(self, idx, embeddings=None, targets=None, for_tsne=False):
         # forward the GPT model
         token_embeddings = self.tok_emb(idx) # each index maps to a (learnable) vector
 
@@ -180,8 +180,12 @@ class GPT(nn.Module):
         x = self.blocks(x)
         # print('x2:', x.shape)
         x = self.ln_f(x)
+
+
         # print('x3:', x.shape)
         logits = self.head(x)
+        if for_tsne:
+            return logits, None
         # print('logits:', logits.shape)
 
         # if we are given some desired targets also calculate the loss

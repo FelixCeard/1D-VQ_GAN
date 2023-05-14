@@ -74,14 +74,14 @@ class DaddyTransformer(pl.LightningModule):
 		model = instantiate_from_config(config)
 		self.first_stage_model: VQModel1D = model
 
-	def forward(self, x):
+	def forward(self, x, for_tsne=False):
 		quant_z, z_indices = self.encode_to_z(x)
 
 		# print(quant_z.shape, z_indices.shape)
 
 
 		# make the prediction
-		logits, _ = self.transformer(z_indices.long())
+		logits, _ = self.transformer(z_indices.long(), for_tsne=for_tsne)
 
 		return logits
 
